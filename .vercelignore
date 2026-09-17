@@ -1,0 +1,7 @@
+node_modules
+data
+*.keras
+*.ipynb
+.git
+.env*
+!vercel.json
