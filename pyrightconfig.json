@@ -1,0 +1,29 @@
+{
+  "include": [
+    "."
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.git"
+  ],
+  "venvPath": "C:\\Users\\DRUSHTISHREE",
+  "venv": "miniconda3",
+  "pythonPath": "C:\\Users\\DRUSHTISHREE\\miniconda3\\python.exe",
+  "pythonPlatform": "Windows",
+  "pythonVersion": "3.13",
+  "extraPaths": [
+    "C:\\Users\\DRUSHTISHREE\\Desktop\\final",
+    "C:\\Users\\DRUSHTISHREE\\miniconda3\\Lib\\site-packages"
+  ],
+  "typeCheckingMode": "basic",
+  "reportMissingImports": "none",
+  "reportMissingTypeStubs": "none",
+  "reportMissingModuleSource": "none",
+  "reportGeneralTypeIssues": "none",
+  "reportOptionalMemberAccess": "none",
+  "reportOptionalSubscript": "none",
+  "reportPrivateImportUsage": "none",
+  "reportWildcardImportFromLibrary": "none",
+  "reportUninitializedInstanceVariable": "none"
+}

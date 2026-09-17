@@ -1,0 +1,268 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1e40af;
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --accent: #dbeafe;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Helvetica Neue', Arial, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--bg);
+    color: var(--text-main);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* 3D Depth Card Archetypes */
+.perspective-container {
+  perspective: 1200px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.card-3d {
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 18px;
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 12px rgba(15, 23, 42, 0.04),
+    0 12px 28px rgba(15, 23, 42, 0.03);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateZ(0);
+}
+
+.card-3d:hover {
+  border-color: rgba(148, 163, 184, 0.5);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 12px 24px -2px rgba(15, 23, 42, 0.08),
+    0 24px 38px -4px rgba(37, 99, 235, 0.06);
+  transform: translateY(-3px) translateZ(8px);
+}
+
+.card-3d-elevated {
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 20px;
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.02),
+    0 10px 24px rgba(15, 23, 42, 0.06),
+    0 20px 48px rgba(37, 99, 235, 0.05);
+  transform-style: preserve-3d;
+}
+
+.glass-3d {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.03),
+    0 1px 1px rgba(255, 255, 255, 0.8) inset;
+}
+
+.glass-dark-3d {
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    0 1px 1px rgba(255, 255, 255, 0.15) inset;
+}
+
+/* 3D Dynamic Lighting Glows */
+.glow-3d-blue {
+  box-shadow: 0 8px 24px -4px rgba(37, 99, 235, 0.35);
+}
+
+.glow-3d-emerald {
+  box-shadow: 0 8px 24px -4px rgba(16, 185, 129, 0.35);
+}
+
+.glow-3d-amber {
+  box-shadow: 0 8px 24px -4px rgba(245, 158, 11, 0.35);
+}
+
+.glow-3d-rose {
+  box-shadow: 0 8px 24px -4px rgba(244, 63, 94, 0.35);
+}
+
+/* Floating animation */
+@keyframes float3d {
+  0%, 100% {
+    transform: translateY(0) rotateX(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotateX(1deg);
+  }
+}
+
+.floating-3d {
+  animation: float3d 5s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+.pulse-glow {
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+/* Depth Buttons */
+.btn-primary-3d {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 
+    0 2px 4px rgba(37, 99, 235, 0.25),
+    0 8px 16px -2px rgba(37, 99, 235, 0.35),
+    0 1px 0 rgba(255, 255, 255, 0.25) inset;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-primary-3d:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  transform: translateY(-1.5px);
+  box-shadow: 
+    0 4px 8px rgba(37, 99, 235, 0.3),
+    0 12px 22px -2px rgba(37, 99, 235, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.3) inset;
+}
+
+.btn-primary-3d:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ==========================================================================
+   OFFICIAL CLINICAL REPORT PRINT STYLES
+   Ensures institutional-grade A4 printing and PDF export without UI clutter.
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm 10mm 12mm;
+  }
+
+  /* Reset global document backgrounds */
+  html, body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 11pt !important;
+    line-height: 1.4 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Hide screen-only interactive chrome */
+  nav, 
+  header, 
+  aside, 
+  footer,
+  .print\:hidden,
+  button,
+  input,
+  select,
+  [role="tooltip"],
+  .no-print {
+    display: none !important;
+  }
+
+  /* When printing from modal or embedded container */
+  .fixed.inset-0 {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  .printable-clinical-report {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  /* Ensure high contrast and sharp lines for printing */
+  .border-slate-900, .border-slate-800, .border-slate-300, .border-slate-200 {
+    border-color: #334155 !important;
+  }
+
+  /* Prevent awkward page breaks */
+  .break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  table {
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+}

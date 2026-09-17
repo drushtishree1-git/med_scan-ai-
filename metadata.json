@@ -1,0 +1,8 @@
+{
+  "name": "MediScan AI",
+  "description": "Evidence-based clinical diagnostic and scan analysis platform with PubMed Central RAG double-verification, pharmaceutical prescriptions (Rx), safety precautions, and role-based medical workflows.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
