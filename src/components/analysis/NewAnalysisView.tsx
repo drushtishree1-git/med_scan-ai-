@@ -154,31 +154,47 @@ export const NewAnalysisView: React.FC<NewAnalysisViewProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Call Real-time Clinical Multimodal Server Endpoint with PubMed Grounding
-      const response = await fetch('/api/ai/analyze-scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          modality: selectedModality,
-          title: studyTitle,
-          symptoms,
-          clinicalNotes,
-          imageBase64: filePreview?.startsWith('data:image') ? filePreview : undefined,
-        }),
-      });
+      // Candidates for API endpoint: local route first, then active public Cloudflare tunnel
+      const endpoints = [
+        '/api/ai/analyze-scan',
+        'https://ghz-justice-sellers-agrees.trycloudflare.com/api/ai/analyze-scan',
+      ];
 
-      const data = await response.json();
+      let data: any = null;
+      for (const ep of endpoints) {
+        try {
+          const response = await fetch(ep, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              modality: selectedModality,
+              title: studyTitle,
+              symptoms,
+              clinicalNotes,
+              imageBase64: filePreview?.startsWith('data:image') ? filePreview : undefined,
+            }),
+          });
+          if (response.ok) {
+            const ct = response.headers.get('content-type') || '';
+            if (ct.includes('application/json')) {
+              const resJson = await response.json();
+              if (resJson.success && resJson.result && resJson.result.summary) {
+                data = resJson;
+                break;
+              }
+            }
+          }
+        } catch (epErr) {
+          console.warn(`[Endpoint ${ep} connection error]`, epErr);
+        }
+      }
+
+      if (!data || !data.result) {
+        throw new Error('No backend responded with a valid clinical diagnostic analysis');
+      }
+
       const aiResult = data.result || {};
-      const trainedModelInference = selectedModality === 'xray' 
-        ? (data.trainedModelInference || {
-            modelName: 'Trained Chest X-Ray Deep Learning Model (MobileNetV2 / Xception CNN)',
-            classification: 'NORMAL',
-            confidenceScore: 0.985,
-            confidencePercentage: '98.5%',
-            probabilities: { NORMAL: 0.985, PNEUMONIA: 0.015 },
-            status: 'Verified against trained weights (chest_xray_model.keras)',
-          })
-        : undefined;
+      const trainedModelInference = selectedModality === 'xray' ? data.trainedModelInference : undefined;
 
       const newRecord: AnalysisRecord = {
         id: `MED-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -197,9 +213,7 @@ export const NewAnalysisView: React.FC<NewAnalysisViewProps> = ({
         fileName: selectedFile?.name || `${selectedModality}_scan_${Date.now()}.dcm`,
         fileSize: selectedFile ? `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB` : '18.4 MB',
         fileType: selectedModality === 'lab_report' ? 'Document/Lab Report' : 'DICOM/Image',
-        primaryFindingSummary:
-          aiResult.summary ||
-          `Clinical diagnostic evaluation completed for ${selectedModality.toUpperCase()}. Anatomic landmarks clear. No acute abnormalities observed. Cross-verified with PubMed clinical literature.`,
+        primaryFindingSummary: aiResult.summary,
         confidenceScore: aiResult.confidenceScore || 0.96,
         tags: [selectedModality.toUpperCase(), ...(selectedModality === 'xray' ? ['Deep Learning Model'] : []), 'PubMed Verified', 'RAG Validated'],
         trainedModelInference,
