@@ -23,7 +23,7 @@ import tensorflow as tf
 
 tf.get_logger().setLevel('ERROR')
 
-def run_prediction(image_path, model_path="chest_xray_model.keras", threshold=0.55):
+def run_prediction(image_path, model_path="chest_xray_model.keras", threshold=0.80):
     if not os.path.exists(image_path):
         return {"success": False, "error": f"Image not found: {image_path}"}
     

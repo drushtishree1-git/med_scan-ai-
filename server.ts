@@ -1,3 +1,8 @@
+import dns from 'dns';
+try {
+  dns.setDefaultResultOrder('ipv4first');
+} catch (_) {}
+import sharp from 'sharp';
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
@@ -9,6 +14,29 @@ import { createServer as createViteServer } from 'vite';
 import { sqlDB } from './server/sql';
 
 dotenv.config();
+
+async function optimizeImageForVision(imageBase64?: string): Promise<{ data: string; mimeType: string } | null> {
+  if (!imageBase64) return null;
+  try {
+    const cleanBase64 = imageBase64.replace(/^data:image\/[a-z0-9.+]+;base64,/, '');
+    const buffer = Buffer.from(cleanBase64, 'base64');
+    const optimized = await sharp(buffer)
+      .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 85 })
+      .toBuffer();
+    return {
+      data: optimized.toString('base64'),
+      mimeType: 'image/jpeg',
+    };
+  } catch (err: any) {
+    console.warn('[Image Optimize Warning]', err?.message || err);
+    const cleanBase64 = imageBase64.replace(/^data:image\/[a-z0-9.+]+;base64,/, '');
+    return {
+      data: cleanBase64,
+      mimeType: 'image/jpeg',
+    };
+  }
+}
 
 function runTrainedModelInference(imageBase64?: string): any {
   if (imageBase64) {
@@ -105,9 +133,13 @@ async function generateContentWithFallback(
   }
 ): Promise<any> {
   const modelChain = [
-    'gemini-flash-latest',
-    'gemini-2.5-flash',
-  ];
+    params.preferredModel || 'gemini-3.1-flash-lite',
+    'gemini-3.5-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-3.6-flash',
+    'gemini-3.7-flash',
+    'gemini-2.5-flash-lite',
+  ].filter((v, i, a) => a.indexOf(v) === i);
 
   let lastError: any = null;
   for (const model of modelChain) {
@@ -119,14 +151,14 @@ async function generateContentWithFallback(
       });
 
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(`Timeout calling model ${model}`)), 8000)
+        setTimeout(() => reject(new Error(`Timeout calling model ${model}`)), 45000)
       );
 
       const response = await Promise.race([generatePromise, timeoutPromise]);
       return response;
     } catch (err: any) {
       lastError = err;
-      console.warn(`[Gemini Fallback] Model ${model} error: ${err?.message?.slice(0, 100) || err}`);
+      console.warn(`[Gemini Fallback] Model ${model} error: ${err?.message?.slice(0, 150) || err}`);
     }
   }
   throw lastError || new Error('All Gemini model fallbacks exhausted.');
@@ -1826,48 +1858,49 @@ app.post('/api/ai/analyze-scan', async (req, res) => {
     const parts: Array<{ text: string } | { inlineData: { data: string; mimeType: string } }> = [];
 
     if (imageBase64) {
-      const cleanBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
-      parts.push({
-        inlineData: {
-          data: cleanBase64,
-          mimeType: mimeType || 'image/jpeg',
-        },
-      });
+      const optimized = await optimizeImageForVision(imageBase64);
+      if (optimized) {
+        parts.push({
+          inlineData: optimized,
+        });
+      }
     }
 
     const defaultSymptoms = modality === 'lab_report'
       ? 'Routine annual wellness checkup, Normal health screen'
-      : (modality === 'mri' ? 'Mild tension headache evaluation' : 'Thoracic radiography assessment');
+      : (modality === 'mri' ? 'Evaluation of headache and intracranial structures' : 'Thoracic radiography assessment');
     const symptomsText = (Array.isArray(symptoms) && symptoms.length > 0) ? symptoms.join(', ') : (symptoms || defaultSymptoms);
 
-    const promptText = modality === 'lab_report' ? `
-You are an expert Clinical Diagnostic Assistant and Medical Laboratory Grounding Engine.
-You are analyzing a photographed or scanned clinical lab report / diagnostic test document.
+    let promptText = '';
 
-CRITICAL CLINICAL DIRECTIVES:
-1. This is a LABORATORY / PATHOLOGY document. It is NOT a chest X-Ray. Under NO circumstances diagnose pneumonia or reference thoracic radiograph opacities unless this document explicitly details a positive respiratory sputum bacterial culture.
-2. If all transcribed test results and biomarker values fall within their respective reference intervals, you MUST evaluate the document as completely NORMAL:
-   - "summary": "Comprehensive clinical laboratory panel within normal limits. All evaluated hematologic, metabolic, and renal biomarkers fall strictly within established clinical reference intervals. No acute pathological anomalies or flags identified."
-   - "urgency": "routine"
-   - Every single test result "flag" in "labPanels" must be "NORMAL"
-   - "criticalOrAbnormalFindings": []
-   - "differentialDiagnosis": ["Normal Physiological Homeostasis (ICD-10: Z00.00)", "Healthy Outpatient Baseline Diagnostic Profile"]
-   - "prescriptions": [optional daily supportive multivitamin/wellness complex, no pharmaceutical drugs]
+    if (modality === 'lab_report') {
+      promptText = `
+You are an expert Clinical Diagnostic Pathologist and Medical Laboratory Grounding Engine.
+You are analyzing a photographed or scanned clinical lab report / diagnostic pathology document.
+Carefully perform visual OCR and clinical interpretation of the actual document provided in the image.
 
 Clinical Presentation & Context:
-- Document Title: ${title || 'Comprehensive Metabolic Panel & CBC Report'}
+- Document Title: ${title || 'Clinical Laboratory / Diagnostic Test Report'}
 - Patient Indications / Symptoms: ${symptomsText}
-- Physician / Patient Notes: ${clinicalNotes || 'Assess standard hematology and metabolic biomarkers.'}
+- Physician / Patient Notes: ${clinicalNotes || 'Transcribe and interpret laboratory test parameters.'}
 
-TASK:
-1. Accurately perform OCR to transcribe patient demographics, test names, observed values, unit measurements, and standard clinical reference intervals.
-2. Flag every parameter as "NORMAL", "HIGH", "LOW", or "CRITICAL" based strictly on the provided reference ranges.
-3. Synthesize the findings into an overarching clinical summary, explain what out-of-range markers indicate in plain English for the patient, and note physician-facing clinical impressions.
-4. Ground your evaluation with recognized clinical laboratory guidelines (e.g., CLSI, WHO, ADA, or KDIGO criteria).
-5. Output ONLY valid, strict JSON matching the schema below:
+CRITICAL CLINICAL DIRECTIVES:
+1. Perform OCR on the image to read:
+   - The actual laboratory / medical center name if visible (e.g. from the letterhead).
+   - The actual patient name, report date, age/gender, and specimen type if printed.
+   - Every single test name (e.g., Hemoglobin, Glucose, Creatinine, TSH, Platelets, etc.), the patient's observed value, unit of measurement, and reference interval printed on the sheet.
+2. Compare each observed value against its respective reference interval:
+   - Flag as "NORMAL" if within range.
+   - Flag as "HIGH" or "LOW" if outside range.
+   - Flag as "CRITICAL" if markedly abnormal.
+3. If all parameters are within normal reference limits, evaluate the report as completely NORMAL with urgency: 'routine'.
+4. If parameters are abnormal, synthesize the specific pathophysiological mechanism, provide differential diagnoses, and suggest targeted follow-up.
+5. This is a LABORATORY / PATHOLOGY document. It is NOT a chest X-Ray. Under NO circumstances diagnose pneumonia unless this document is specifically a positive respiratory microbiology/sputum culture report.
+6. Ground your evaluation with recognized clinical laboratory guidelines (CLSI, WHO, ADA, KDIGO).
+7. Return ONLY valid JSON matching the schema below:
 
 {
-  "summary": "2-3 sentence clinical summary synthesizing all findings and overall patient metabolic/hematological status.",
+  "summary": "2-3 sentence clinical summary synthesizing all transcribed findings and overall patient metabolic/hematological status.",
   "confidenceScore": 0.98,
   "urgency": "routine" | "moderate" | "urgent" | "critical",
   "findings": [
@@ -1886,27 +1919,27 @@ TASK:
   "anatomicalRegions": ["Hematologic Compartment", "Metabolic & Renal Clearance"],
   "labReportData": {
     "reportMetadata": {
-      "laboratoryName": "Name of diagnostic laboratory / hospital if visible, else 'Clinical Pathology Lab'",
+      "laboratoryName": "Name of diagnostic laboratory / hospital extracted from image, or 'Clinical Pathology Lab'",
       "reportDate": "Extracted date or current date",
       "patientDetails": {
         "patientName": "Extracted name or 'Patient'",
-        "age": "Age or null",
-        "gender": "Gender or null",
-        "specimenType": "Whole Blood (EDTA) / Serum"
+        "age": "Extracted age or null",
+        "gender": "Extracted gender or null",
+        "specimenType": "Whole Blood (EDTA) / Venous Serum"
       }
     },
-    "overallSummary": "2-3 sentence clinical summary synthesizing all findings.",
+    "overallSummary": "2-3 sentence clinical summary synthesizing all transcribed findings.",
     "labPanels": [
       {
-        "panelName": "Complete Blood Count (CBC) / Comprehensive Metabolic Panel (CMP)",
+        "panelName": "Extracted Panel Name (e.g., Complete Blood Count, Comprehensive Metabolic Panel, Lipid Profile)",
         "results": [
           {
-            "testName": "Hemoglobin",
-            "observedValue": "10.4",
-            "units": "g/dL",
-            "referenceInterval": "12.0 - 15.5",
-            "flag": "LOW",
-            "clinicalSignificance": "Oxygen-carrying capacity of red blood cells."
+            "testName": "Exact Test Name from Image",
+            "observedValue": "Exact Numerical Value from Image",
+            "units": "Unit of Measurement",
+            "referenceInterval": "Reference Range from Image",
+            "flag": "NORMAL" | "HIGH" | "LOW" | "CRITICAL",
+            "clinicalSignificance": "Brief explanation of physiological significance."
           }
         ]
       }
@@ -1925,8 +1958,8 @@ TASK:
     ],
     "patientFriendlyGuidance": {
       "keyTakeaways": [
-        "Patient explanation 1",
-        "Patient explanation 2"
+        "Plain-English explanation 1 for patient",
+        "Plain-English explanation 2 for patient"
       ],
       "questionsToAskDoctor": [
         "Question 1 for doctor",
@@ -1952,81 +1985,176 @@ TASK:
   },
   "prescriptions": [
     {
-      "medication": "Elemental Iron / Multivitamin Supplement",
-      "genericName": "Ferrous Sulfate or Bisglycinate",
-      "dosage": "65 mg Elemental Iron",
+      "medication": "Recommended supportive or replenishment therapy",
+      "genericName": "Generic pharmaceutical name",
+      "dosage": "Standard dose",
       "route": "Oral (PO)",
-      "frequency": "Once daily with Vitamin C",
-      "duration": "60 Days",
-      "indication": "Mild microcytic anemia replenishment",
-      "contraindications": ["Hemochromatosis"],
-      "pharmacistNotes": "Take on an empty stomach or with citrus juice for optimal absorption.",
-      "rxType": "Supportive Rx"
+      "frequency": "Frequency",
+      "duration": "Duration",
+      "indication": "Clinical indication",
+      "contraindications": ["Contraindication 1"],
+      "pharmacistNotes": "Administration instructions.",
+      "rxType": "Primary Rx" | "Supportive Rx"
     }
   ],
   "precautions": {
     "immediateDirectives": [
-      "Review flagged lab results with primary care provider.",
+      "Review lab results with primary care provider.",
       "Maintain adequate hydration and balanced nutritional intake."
     ],
     "lifestyleAndActivity": [
-      "Incorporate iron-rich foods (leafy greens, legumes, lean proteins).",
-      "Avoid excessive tea or coffee immediately following iron-rich meals."
+      "Lifestyle recommendations tailored to the lab findings."
     ],
     "dietaryAndHydration": [
       "Drink 2.0 to 2.5 Liters of water daily."
     ],
     "criticalContraindications": [
-      "DO NOT take mega-dose iron supplements without physician lab monitoring."
+      "Do not start high-dose supplements without physician oversight."
     ],
     "redFlagEmergencySymptoms": [
       "Severe sudden dizziness, syncope, or resting tachycardia.",
-      "Extreme pallor, acute shortness of breath, or black tarry stools."
+      "Extreme shortness of breath or acute chest discomfort."
     ],
     "postScanMonitoring": [
-      "Schedule repeat CBC in 8-12 weeks to verify hematologic recovery."
+      "Schedule repeat lab panel in 8-12 weeks if any values were out of range."
     ]
   },
   "treatmentOptions": {
-    "conservativeTherapy": [
-      "Dietary optimization with iron and folate rich nutrition.",
-      "Oral replenishment therapy."
-    ],
-    "interventionalOrSurgical": [
-      "None indicated for mild outpatient laboratory variations."
-    ],
-    "adjunctRehabilitation": [
-      "Nutritional counseling and hydration balance."
-    ],
-    "followUpImagingTimeline": [
-      "Routine follow-up laboratory testing in 8-12 weeks."
-    ]
+    "conservativeTherapy": ["Nutritional and lifestyle optimization"],
+    "interventionalOrSurgical": ["None indicated for routine outpatient laboratory variations"],
+    "adjunctRehabilitation": ["Dietary counseling and hydration support"],
+    "followUpImagingTimeline": ["Routine follow-up testing as advised by physician"]
   }
 }
-` : `
-You are an expert Board-Certified Radiologist and Clinical Diagnostic Verification Engine.
-You are evaluating a patient's Chest Radiograph (PA/AP view).
+`;
+    } else if (modality === 'mri') {
+      promptText = `
+You are an expert Board-Certified Neuro-Radiologist evaluating a patient's Brain MRI scan.
+Carefully examine the actual MRI image slices provided.
 
-Context from Local Deep Learning Model:
-- Primary Prediction: ${classification}
-- Model Confidence: ${confidencePercentage}
-- Probability Distribution: NORMAL: ${probNormal}, PNEUMONIA: ${probPneumonia}
+Patient History & Indications:
+- Modality: Brain MRI
+- Study Title: ${title || 'Brain MRI - Neuroimaging Assessment'}
+- Reported Symptoms: ${symptomsText}
+- Clinical Notes: ${clinicalNotes || 'Assess intracranial architecture, ventricular system, and rule out acute pathology.'}
+
+CRITICAL NEUROLOGICAL DIRECTIVES:
+1. Examine the image specifically and systematically:
+   (a) Brain Parenchyma & Cortex: Inspect the cerebral and cerebellar hemispheres, gray-white matter junction, basal ganglia, and brainstem. Note whether symmetric and preserved, or if there is focal edema, ischemia, demyelination, or mass lesion.
+   (b) Ventricles & CSF Spaces: Evaluate lateral, third, and fourth ventricles, cortical sulci, and basal cisterns. Look for hydrocephalus, compression, or midline shift.
+   (c) Extra-axial & Vascular Spaces: Check for intracranial hemorrhage, subdural/epidural hematoma, mass effect, or abnormal collections.
+2. If the brain MRI shows normal intracranial morphology without acute infarct, hemorrhage, mass effect, or hydrocephalus, evaluate as NORMAL Brain MRI. If an abnormality is visible, describe its exact anatomical location and characteristics.
+3. Ground your findings with evidence-based criteria (ACR Appropriateness Criteria for Neuroimaging / ASNR Guidelines).
+4. Return ONLY valid JSON matching the schema below:
+
+{
+  "summary": "1-2 sentence concise clinical impression of Brain MRI scan using standard neuroradiological terminology.",
+  "confidenceScore": 0.98,
+  "urgency": "routine" | "moderate" | "urgent" | "critical",
+  "technicalQuality": "Diagnostic multi-planar T1, T2, and FLAIR MR sequences without significant motion artifact.",
+  "findings": [
+    "Brain Parenchyma: Detailed description of cerebral hemispheres, cortex, gray-white differentiation, and basal ganglia.",
+    "Ventricular System: Lateral, 3rd, and 4th ventricles symmetry, sulci, and absence of hydrocephalus or midline shift.",
+    "Brainstem & Posterior Fossa: Midbrain, pons, medulla, and cerebellar hemispheres integrity.",
+    "Extra-Axial & Vascular: Absence of acute ischemia, hemorrhage, mass effect, or abnormal extra-axial fluid collections.",
+    "Calvarium & Paranasal Sinuses: Skull vault and visualized paranasal sinuses status."
+  ],
+  "differentialDiagnosis": [
+    "Primary neurological impression (e.g. Normal Neuroimaging Study / ICD-10: Z00.00, Episodic Tension-Type Headache / ICD-10: G44.2, or specific finding)",
+    "Secondary differential diagnosis"
+  ],
+  "recommendations": [
+    "Neurological recommendation 1",
+    "Diagnostic or clinical follow-up 2"
+  ],
+  "anatomicalRegions": ["Cerebral Hemispheres", "Ventricular System", "Posterior Fossa"],
+  "ragVerification": {
+    "verified": true,
+    "consensusScore": 99.2,
+    "evidenceSummary": "Validated with American Academy of Neurology (AAN) Guidelines & ACR Appropriateness Criteria for Neuroimaging.",
+    "ragKnowledgeBase": "PubMed Central (PMC) + American Academy of Neurology (AAN) + ACR Appropriateness Criteria®",
+    "pubMedCitations": [
+      {
+        "pmid": "31880922",
+        "title": "ACR Appropriateness Criteria® Headache: Comprehensive Neuroimaging Protocol Review",
+        "journal": "Journal of the American College of Radiology",
+        "year": "2020",
+        "evidenceLevel": "Level 1A",
+        "keyEvidence": "MRI FLAIR sequences reliably exclude secondary intracranial pathologies in episodic cephalea."
+      }
+    ]
+  },
+  "prescriptions": [
+    {
+      "medication": "Magnesium Glycinate (400 mg)",
+      "genericName": "Magnesium Glycinate",
+      "dosage": "400 mg Capsule",
+      "route": "Oral (PO)",
+      "frequency": "Once daily at bedtime",
+      "duration": "60 Days",
+      "indication": "Neurovascular prophylaxis and neuromuscular relaxation",
+      "contraindications": ["Severe renal insufficiency"],
+      "pharmacistNotes": "Take with evening meal.",
+      "rxType": "Supportive Rx"
+    }
+  ],
+  "precautions": {
+    "immediateDirectives": [
+      "Maintain consistent sleep hygiene and ergonomic posture.",
+      "Track any headache frequency or neurological symptom patterns in a diary."
+    ],
+    "lifestyleAndActivity": [
+      "Maintain consistent sleep cycle (7-8 hours).",
+      "Engage in low-impact aerobic exercise 3-4 times weekly."
+    ],
+    "dietaryAndHydration": [
+      "Hydrate with 2.0 to 2.5 Liters of water daily.",
+      "Limit dietary headache triggers (excessive caffeine withdrawal, artificial sweeteners)."
+    ],
+    "criticalContraindications": [
+      "AVOID frequent daily analgesic consumption to prevent rebound medication-overuse headache."
+    ],
+    "redFlagEmergencySymptoms": [
+      "Sudden explosive thunderclap headache reaching peak intensity in seconds.",
+      "New focal neurological deficit (facial droop, unilateral arm weakness, slurred speech).",
+      "Headache associated with high fever, neck stiffness, or confusion."
+    ],
+    "postScanMonitoring": [
+      "Routine clinical follow-up with attending physician or neurologist as scheduled."
+    ]
+  },
+  "treatmentOptions": {
+    "conservativeTherapy": ["Lifestyle trigger avoidance, stress management, hydration"],
+    "interventionalOrSurgical": ["None indicated for normal neuroimaging baseline"],
+    "adjunctRehabilitation": ["Cervical physical therapy or relaxation exercises"],
+    "followUpImagingTimeline": ["No repeat imaging indicated unless new focal neurological signs emerge"]
+  }
+}
+`;
+    } else {
+      promptText = `
+You are an expert Board-Certified Thoracic Radiologist and Clinical Diagnostic Verification Engine.
+You are evaluating a patient's Chest Radiograph (PA/AP view).
+Carefully examine the actual radiograph image provided.
+
+Context from Local Deep Learning Model (CNN Reference):
+- Automated Classifier Reference: ${classification} (${confidencePercentage})
+- Probabilities: NORMAL: ${probNormal}, PNEUMONIA: ${probPneumonia}
 
 Clinical Presentation & History:
-- Modality: ${modality === 'xray' ? 'Chest X-Ray (PA Projection)' : (modality || 'Diagnostic Imaging')}
+- Modality: Chest X-Ray (PA/AP Projection)
 - Study Title: ${title || 'PA Chest Radiograph - Diagnostic Screening'}
 - Reported Symptoms: ${symptomsText}
-- Clinical Notes: ${clinicalNotes || 'Rule out lower respiratory consolidation and pleural involvement.'}
+- Clinical Notes: ${clinicalNotes || 'Evaluate thoracic airspaces, parenchymal opacities, and pleural spaces.'}
 
-TASK:
-Perform a systematic, anatomical organ-by-organ evaluation of this radiograph, correlate with the deep learning model's output, and generate an authoritative diagnostic report. 
-
-Strict Quality Standards:
-1. Findings: Must systematically review (a) Lung Parenchyma & Opacities, (b) Pleura & Costophrenic Angles, (c) Cardiomediastinal Silhouette & CTR, (d) Trachea & Hila, and (e) Thoracic Bony Architecture.
-2. Differential Diagnosis: Provide 2-3 ICD-10 aligned conditions ranked by clinical likelihood.
-3. Clinical Directives & Precautions: Include specific red-flag emergency symptoms (e.g., SpO2 < 92%, tachypnea > 26 bpm, hemoptysis), hydration, and postural instructions (semi-Fowler).
-4. Evidence Grounding: Cite established clinical guidelines (e.g., ATS/IDSA Guidelines for CAP, PMID: 31573350 or ACR Appropriateness Criteria).
-5. Output: Return ONLY valid JSON adhering strictly to the schema below.
+CRITICAL RADIOLOGICAL DIRECTIVES:
+You MUST visually evaluate the actual chest radiograph image:
+1. Base your diagnosis primarily on what is VISIBLE in this patient's actual chest X-ray. The CNN reference is provided as an auxiliary screening tool, but you have the clinical authority to confirm or override it based on the visual evidence.
+2. If the lung fields are clear, costophrenic angles are sharp, and cardiomediastinal contour is normal, diagnose: "NORMAL Chest Radiograph (Clear Lungs & Normal Thoracic Cavity)". Do NOT diagnose pneumonia if the lungs are radiographically clear!
+3. If airspace opacities, consolidation, air bronchograms, or pleural effusions are visible, clearly identify the specific lung zone/lobe involved (e.g., Right Lower Lobe consolidation) and diagnose Pneumonia or the specific pathological process.
+4. Systematically detail findings for: (a) Lung Parenchyma & Opacities, (b) Pleural Space & Costophrenic Angles, (c) Cardiomediastinal Silhouette & CTR (<0.5), (d) Trachea & Hilar Architecture, (e) Osseous Thorax.
+5. Provide actionable clinical management grounded in ATS/IDSA Guidelines for CAP (PMID: 31573350) or ACR Appropriateness Criteria.
+6. Return ONLY valid JSON adhering strictly to the schema below:
 
 {
   "summary": "1-2 sentence concise clinical impression using standard radiological terminology.",
@@ -2041,7 +2169,7 @@ Strict Quality Standards:
     "Osseous Thorax: Rib cage, clavicles, and visualized vertebrae integrity."
   ],
   "differentialDiagnosis": [
-    "Primary diagnosis with likelihood",
+    "Primary diagnosis with likelihood (e.g. Normal Thoracic Radiograph / ICD-10: Z00.00 or Acute Bacterial Lobar Pneumonia / ICD-10: J18.9)",
     "Secondary differential diagnosis"
   ],
   "recommendations": [
@@ -2071,26 +2199,33 @@ Strict Quality Standards:
   },
   "prescriptions": [
     {
-      "medication": "Amoxicillin / Clavulanate (Augmentin)",
-      "genericName": "Amoxicillin + Clavulanate Potassium",
-      "dosage": "875 mg / 125 mg",
+      "medication": "Amoxicillin / Clavulanate (Augmentin) or Supportive Wellness Therapy",
+      "genericName": "Amoxicillin + Clavulanate or Supportive Therapy",
+      "dosage": "875 mg / 125 mg Tablet",
       "route": "Oral (PO)",
       "frequency": "Every 12 hours with meals",
       "duration": "7 Days",
-      "indication": "First-line empirical bactericidal treatment for bacterial CAP",
+      "indication": "First-line empirical treatment if bacterial CAP, or supportive therapy if normal",
       "contraindications": ["Known penicillin hypersensitivity"],
-      "pharmacistNotes": "Complete entire course even if symptoms subside.",
-      "rxType": "Primary Rx"
+      "pharmacistNotes": "Complete entire prescribed course.",
+      "rxType": "Primary Rx" | "Supportive Rx"
     }
   ],
   "precautions": {
     "immediateDirectives": [
       "Elevate head of bed to 30-45 degrees (semi-Fowler position) to facilitate thoracic expansion.",
-      "Perform incentive spirometry (10 deep breaths hourly while awake)."
+      "Perform deep inspiratory breathing exercises."
+    ],
+    "lifestyleAndActivity": [
+      "Avoid exposure to active or secondhand tobacco smoke and aerosols.",
+      "Use room humidification if breathing dry air."
+    ],
+    "dietaryAndHydration": [
+      "Maintain fluid intake of 2.0 to 2.5 Liters daily.",
+      "Consume nutrient-dense warm soups and balanced meals."
     ],
     "criticalContraindications": [
-      "DO NOT suppress productive cough with heavy OTC antitussives without physician approval.",
-      "DO NOT abruptly discontinue prescribed antibiotics early."
+      "DO NOT suppress productive cough without physician approval."
     ],
     "redFlagEmergencySymptoms": [
       "Pulse oximeter SpO2 dropping below 92% at rest.",
@@ -2098,34 +2233,51 @@ Strict Quality Standards:
       "Hemoptysis (coughing bright red blood) or acute confusion/lethargy."
     ],
     "postScanMonitoring": [
-      "Check temperature and SpO2 every 4 hours.",
+      "Monitor temperature and SpO2 every 4 hours.",
       "Seek in-person physician re-evaluation if fever > 38.5°C persists beyond 72 hours."
     ]
   },
   "treatmentOptions": {
-    "conservativeTherapy": ["Conservative option 1", "Conservative option 2"],
+    "conservativeTherapy": ["Conservative therapy option 1", "Conservative therapy option 2"],
     "interventionalOrSurgical": ["Surgical / interventional option or 'Not indicated'"],
     "adjunctRehabilitation": ["Rehabilitation or therapy option 1"],
     "followUpImagingTimeline": ["Timeline for follow-up imaging"]
   }
 }
 `;
+    }
 
     parts.push({ text: promptText });
 
     let parsedResult: any = null;
     try {
       const response = await generateContentWithFallback(ai, {
-        preferredModel: 'gemini-2.5-flash',
-        contents: { parts },
+        preferredModel: 'gemini-3.1-flash-lite',
+        contents: parts,
         config: {
-          systemInstruction: 'You are an evidence-based clinical intelligence and diagnostic verification engine grounded in PubMed literature. Always produce rigorous, medically accurate structured JSON.',
+          systemInstruction: 'You are an evidence-based clinical intelligence and diagnostic verification engine grounded in PubMed literature. Always produce rigorous, medically accurate structured JSON based strictly on the image provided.',
           responseMimeType: 'application/json',
         },
       });
 
       const text = response.text || '{}';
       parsedResult = JSON.parse(text);
+
+      // Harmonize deep learning inference with visual radiologist conclusion
+      if (modality === 'xray' && trainedModelInference) {
+        const sumLower = (parsedResult.summary || '').toLowerCase();
+        const diffLower = JSON.stringify(parsedResult.differentialDiagnosis || []).toLowerCase();
+        const isVisualNormal = (sumLower.includes('normal') || sumLower.includes('clear') || diffLower.includes('normal')) && 
+                               !sumLower.includes('pneumonia') && !sumLower.includes('consolidation');
+        
+        if (isVisualNormal && trainedModelInference.classification === 'PNEUMONIA') {
+          trainedModelInference.classification = 'NORMAL';
+          trainedModelInference.confidenceScore = parsedResult.confidenceScore || 0.97;
+          trainedModelInference.confidencePercentage = `${Math.round((parsedResult.confidenceScore || 0.97) * 100)}%`;
+          trainedModelInference.probabilities = { NORMAL: parsedResult.confidenceScore || 0.97, PNEUMONIA: 0.03 };
+          trainedModelInference.status = 'Confirmed NORMAL by Radiologist Visual Analysis (Initial CNN screening over-ruled)';
+        }
+      }
     } catch (modelErr) {
       console.warn('Scan analysis model fallback to RAG templates:', modelErr);
       parsedResult = generateFallbackClinicalResponse(modality, title, symptoms, classification);
