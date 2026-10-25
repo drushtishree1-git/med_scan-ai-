@@ -1,6 +1,6 @@
-# 🏥 MediScan AI — Clinical Radiology Diagnostic & Database Platform
-
-MediScan AI is an evidence-based clinical radiology diagnostic suite and healthcare management platform powered by Google Gemini AI, SQLite Relational Database Engine, PubMed RAG double-verification protocols, and Xception deep learning classifiers.
+# 🏥
+MediScan AI is MediScan AI — Clinical Radiology Diagnostic & Database Platform
+ an evidence-based clinical radiology diagnostic suite and healthcare management platform powered by Google Gemini AI, SQLite Relational Database Engine, PubMed RAG double-verification protocols, and Xception deep learning classifiers.
 
 ---
 

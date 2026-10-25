@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Upload, 
   FileText, 
@@ -92,6 +92,29 @@ export const NewAnalysisView: React.FC<NewAnalysisViewProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedRecord, setCompletedRecord] = useState<AnalysisRecord | null>(null);
   const [formError, setFormError] = useState('');
+  const [sampleScans, setSampleScans] = useState<any[]>(SAMPLE_SCANS);
+
+  useEffect(() => {
+    fetch('/api/dataset/sample-xrays')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && data.success && Array.isArray(data.samples) && data.samples.length > 0) {
+          const datasetSamples = data.samples.map((s: any) => ({
+            title: s.title,
+            modality: 'xray' as AnalysisModality,
+            symptoms: s.symptoms,
+            notes: s.notes,
+            imagePlaceholder: s.imagePlaceholder,
+            fileName: s.fileName,
+          }));
+          setSampleScans([
+            ...datasetSamples,
+            ...SAMPLE_SCANS.filter((s) => s.modality !== 'xray'),
+          ]);
+        }
+      })
+      .catch((err) => console.warn('[Sample scans fetch warning]', err));
+  }, []);
 
   const modalities: { id: AnalysisModality; label: string; desc: string; icon: string }[] = [
     { id: 'xray', label: 'Chest X-Ray', desc: 'Pneumonia, cardiomegaly, effusion', icon: '🩻' },
@@ -128,13 +151,14 @@ export const NewAnalysisView: React.FC<NewAnalysisViewProps> = ({
     }
   };
 
-  const handleLoadSample = (sample: typeof SAMPLE_SCANS[0]) => {
+  const handleLoadSample = (sample: any) => {
     setSelectedModality(sample.modality);
     setStudyTitle(sample.title);
     setSymptoms(sample.symptoms);
     setClinicalNotes(sample.notes);
     setFilePreview(sample.imagePlaceholder);
-    setSelectedFile(new File([''], `${sample.modality}_sample_scan.jpg`, { type: 'image/jpeg' }));
+    const fname = sample.fileName || `${sample.modality}_sample_scan.jpg`;
+    setSelectedFile(new File([''], fname, { type: 'image/jpeg' }));
   };
 
   const handleAddSymptom = () => {
@@ -157,7 +181,7 @@ export const NewAnalysisView: React.FC<NewAnalysisViewProps> = ({
       // Candidates for API endpoint: local route first, then active public Cloudflare tunnel
       const endpoints = [
         '/api/ai/analyze-scan',
-        'https://ghz-justice-sellers-agrees.trycloudflare.com/api/ai/analyze-scan',
+        'https://avatar-importance-arrested-uncertainty.trycloudflare.com/api/ai/analyze-scan',
       ];
 
       let data: any = null;
@@ -229,191 +253,7 @@ export const NewAnalysisView: React.FC<NewAnalysisViewProps> = ({
       onAnalysisCreated?.(newRecord);
     } catch (err: any) {
       console.error('Error during clinical analysis:', err);
-      const isLab = selectedModality === 'lab_report';
-      // Fallback structured record with full PubMed verification and Rx
-      const fallbackRecord: AnalysisRecord = {
-        id: `MED-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
-        title: studyTitle || `${selectedModality.toUpperCase()} Study`,
-        modality: selectedModality,
-        status: 'completed',
-        urgency: 'routine',
-        patientId,
-        patientName,
-        doctorId: 'DOC-84920',
-        doctorName: 'Dr. Drushti Shree, MD',
-        submittedAt: new Date().toISOString(),
-        completedAt: new Date().toISOString(),
-        symptoms,
-        clinicalNotes: clinicalNotes || (user?.email ? `Account: ${user.email}` : undefined),
-        fileName: selectedFile?.name || `${selectedModality}_diagnostic_record.dcm`,
-        fileSize: '12.6 MB',
-        fileType: isLab ? 'Document/Lab Report' : 'DICOM/Image',
-        primaryFindingSummary: isLab
-          ? 'Comprehensive Clinical Laboratory Panel within Normal Limits. All evaluated hematologic (CBC), metabolic (CMP), and renal biomarkers fall strictly within established clinical reference intervals. No acute pathological anomalies or flags identified.'
-          : `Diagnostic assessment for ${selectedModality.toUpperCase()}: Anatomical structures within normal limits. Verified against PubMed reference index.`,
-        confidenceScore: 0.98,
-        tags: [selectedModality.toUpperCase(), ...(selectedModality === 'xray' ? ['Deep Learning Model'] : []), 'PubMed Verified', 'RAG Grounded'],
-        trainedModelInference: selectedModality === 'xray' ? {
-          modelName: 'Trained Chest X-Ray Deep Learning Model (MobileNetV2 / Xception CNN)',
-          classification: 'NORMAL',
-          confidenceScore: 0.985,
-          confidencePercentage: '98.5%',
-          probabilities: { NORMAL: 0.985, PNEUMONIA: 0.015 },
-          status: 'Verified against trained weights (chest_xray_model.keras)',
-        } : undefined,
-        labReportData: isLab ? {
-          reportMetadata: {
-            laboratoryName: 'Metropolitan Medical Diagnostics & Clinical Pathology Laboratories',
-            reportDate: new Date().toISOString().slice(0, 10),
-            patientDetails: {
-              patientName,
-              age: '32',
-              gender: 'Female',
-              specimenType: 'Whole Blood (K2-EDTA) & Venous Serum',
-            },
-          },
-          overallSummary: 'All analyzed laboratory biomarkers are strictly within established clinical reference ranges. Renal filtration, electrolyte balances, hepatic transaminases, and hematologic cellular counts demonstrate an optimal physiological baseline.',
-          labPanels: [
-            {
-              panelName: 'Complete Blood Count (CBC with Differential)',
-              results: [
-                { testName: 'Hemoglobin (Hb)', observedValue: '14.2', units: 'g/dL', referenceInterval: '12.0 - 16.0', flag: 'NORMAL', clinicalSignificance: 'Measures total oxygen-carrying protein in circulating red blood cells.' },
-                { testName: 'Hematocrit (Hct)', observedValue: '42.5', units: '%', referenceInterval: '37.0 - 48.0', flag: 'NORMAL', clinicalSignificance: 'Normal proportion of whole blood volume composed of red blood cells.' },
-                { testName: 'Mean Corpuscular Volume (MCV)', observedValue: '88.4', units: 'fL', referenceInterval: '80.0 - 100.0', flag: 'NORMAL', clinicalSignificance: 'Average RBC size within standard normocytic range.' },
-                { testName: 'White Blood Cell Count (WBC)', observedValue: '6.5', units: '10^3/uL', referenceInterval: '4.5 - 11.0', flag: 'NORMAL', clinicalSignificance: 'Healthy immune baseline with no leukocytosis or leukopenia.' },
-                { testName: 'Platelet Count', observedValue: '250', units: '10^3/uL', referenceInterval: '150 - 400', flag: 'NORMAL', clinicalSignificance: 'Normal clotting and platelet homeostasis.' },
-              ],
-            },
-            {
-              panelName: 'Comprehensive Metabolic Panel (CMP)',
-              results: [
-                { testName: 'Fasting Plasma Glucose', observedValue: '88', units: 'mg/dL', referenceInterval: '70 - 99', flag: 'NORMAL', clinicalSignificance: 'Optimal fasting glycemic control.' },
-                { testName: 'Serum Creatinine', observedValue: '0.85', units: 'mg/dL', referenceInterval: '0.59 - 1.04', flag: 'NORMAL', clinicalSignificance: 'Healthy glomerular filtration and baseline renal clearance.' },
-                { testName: 'Blood Urea Nitrogen (BUN)', observedValue: '14', units: 'mg/dL', referenceInterval: '7 - 20', flag: 'NORMAL', clinicalSignificance: 'Normal nitrogenous excretion.' },
-                { testName: 'Serum Potassium (K+)', observedValue: '4.2', units: 'mmol/L', referenceInterval: '3.5 - 5.1', flag: 'NORMAL', clinicalSignificance: 'Normal myocardial membrane stability and electrolyte homeostasis.' },
-              ],
-            },
-          ],
-          criticalOrAbnormalFindings: [],
-          differentialInterpretations: [
-            'Normal Laboratory Profile / Physiologic Homeostasis (ICD-10: Z00.00)',
-            'No Evidence of Metabolic, Hematologic, or Renal Derangements',
-          ],
-          physicianRecommendations: [
-            'Continue routine preventative lifestyle habits and balanced nutrition',
-            'Schedule routine annual laboratory wellness check',
-          ],
-          patientFriendlyGuidance: {
-            keyTakeaways: [
-              'Great news! All of your laboratory biomarkers and blood counts are within normal, healthy reference ranges.',
-              'Your red blood cells, immune white blood cells, and platelets are healthy and functioning normally.',
-              'Your blood sugar, kidney function, and liver enzyme levels are all well within optimal ranges.',
-            ],
-            questionsToAskDoctor: [
-              'When should I schedule my next routine annual health screening?',
-            ],
-          },
-        } : undefined,
-        ragVerification: {
-          verified: true,
-          consensusScore: 98.4,
-          ragKnowledgeBase: 'PubMed Central (PMC) + ACR Guidelines',
-          evidenceSummary: 'Cross-validated against peer-reviewed clinical practice guidelines and radiologic reference sets.',
-          peerReviewConsensus: 'High Diagnostic Concordance with Standard ACR Criteria',
-          pubMedCitations: [
-            {
-              pmid: '34912044',
-              title: 'Evidence-Based Diagnostic Pathways in Chest Radiography and Cross-Sectional Imaging',
-              journal: 'Radiology & Clinical Medicine',
-              year: '2023',
-              evidenceLevel: 'Level 1A Systematic Review',
-              keyEvidence: 'Standard PA projection demonstrates negative predictive value >98% for acute parenchymal infiltration when clear.',
-              url: 'https://pubmed.ncbi.nlm.nih.gov/34912044/',
-              crossValidationMatch: '100% Agreement with Radiographic Findings',
-            },
-            {
-              pmid: '32847593',
-              title: 'Cochrane Systematic Review: Evidence-Based Management of Post-Viral Respiratory Symptoms',
-              journal: 'Cochrane Database of Systematic Reviews',
-              year: '2022',
-              evidenceLevel: 'Level 1 Meta-Analysis',
-              keyEvidence: 'Hydration and symptomatic anti-inflammatory care outperform empiric antibiotic prescription in viral presentations.',
-              url: 'https://pubmed.ncbi.nlm.nih.gov/32847593/',
-              crossValidationMatch: 'Prescription & Precaution Protocol Aligned',
-            },
-          ],
-        },
-        prescriptions: [
-          {
-            medication: 'Guaifenesin Extended-Release',
-            genericName: 'Guaifenesin 600mg',
-            dosage: '600 mg',
-            route: 'Oral Tablet',
-            frequency: 'Every 12 hours with a full glass of water',
-            duration: '5 - 7 Days',
-            indication: 'Mucus thinning and respiratory airway clearance',
-            pharmacistNotes: 'Maintain generous fluid intake throughout the day to maximize expectorant efficacy.',
-            contraindications: ['Hypersensitivity to guaifenesin'],
-            rxType: 'Primary Rx',
-          },
-          {
-            medication: 'Acetaminophen / Paracetamol',
-            genericName: 'Acetaminophen 500mg',
-            dosage: '500 mg - 650 mg',
-            route: 'Oral Tablet',
-            frequency: 'Every 6-8 hours as needed for discomfort',
-            duration: 'As needed (Max 3,000 mg / 24 hrs)',
-            indication: 'Symptomatic mild pain and temperature modulation',
-            pharmacistNotes: 'Do not combine with other acetaminophen-containing over-the-counter products.',
-            contraindications: ['Severe hepatic impairment', 'Active alcohol abuse'],
-            rxType: 'Supportive Rx',
-          },
-        ],
-        precautions: {
-          immediateDirectives: [
-            'Maintain resting semi-Fowler position (elevate head 30 degrees) to optimize pulmonary ventilation.',
-            'Perform gentle deep-breathing exercises (5 slow breaths every hour while awake).',
-          ],
-          lifestyleAndActivity: [
-            'Avoid heavy aerobic exertion or high-intensity lifting for 72 hours.',
-            'Ensure 7.5 to 8.5 hours of uninterrupted sleep in a well-ventilated, humidified room.',
-          ],
-          dietaryAndHydration: [
-            'Target 2.5 to 3.0 Liters of warm fluids/electrolytes daily.',
-            'Incorporate warm herbal teas with honey for pharyngeal comfort.',
-          ],
-          criticalContraindications: [
-            'Do NOT self-prescribe unindicated antibiotics without confirmed bacterial sputum culture.',
-            'Avoid exposure to active/passive tobacco smoke, vaping aerosol, and aerosolized chemical sprays.',
-          ],
-          redFlagEmergencySymptoms: [
-            'Sudden onset acute pleuritic chest pain radiating to shoulder or back.',
-            'Oxygen saturation dropping below 93% on pulse oximetry or persistent cyanosis.',
-            'Hemoptysis (coughing up blood) or respiratory rate exceeding 26 breaths/min.',
-          ],
-        },
-        treatmentOptions: {
-          conservativeTherapy: [
-            'High-fluid oral hydration protocol (2.5 - 3.0L/day) to enhance mucosal clearance.',
-            'Steam inhalation or cool-mist humidification for 15 minutes twice daily.',
-          ],
-          interventionalOrSurgical: [
-            'None indicated at present given clear parenchymal anatomy.',
-            'Sputum Gram stain & culture indicated ONLY if productive purulent sputum persists >7 days.',
-          ],
-          adjunctRehabilitation: [
-            'Diaphragmatic breathing and thoracic expansion physical therapy exercises.',
-            'Vagus nerve soothing sound therapy / resonant breathing for anxiety reduction.',
-          ],
-          followUpImagingTimeline: [
-            'Routine follow-up in 10-14 days if mild symptoms persist.',
-            'Repeat PA Chest Radiograph in 4-6 weeks only if recurrent clinical indications arise.',
-          ],
-        },
-      };
-
-      addAnalysisRecord(fallbackRecord);
-      setCompletedRecord(fallbackRecord);
+      setFormError(err?.message || 'Clinical diagnostic analysis failed. Please verify the image and ensure the deep learning service is running.');
     } finally {
       setIsSubmitting(false);
     }
@@ -475,14 +315,15 @@ export const NewAnalysisView: React.FC<NewAnalysisViewProps> = ({
               <span>Quick Test with Clinical Study Presets:</span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {SAMPLE_SCANS.map((sample, idx) => (
+              {sampleScans.map((sample, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => handleLoadSample(sample)}
                   className="px-2.5 py-1 rounded-lg bg-white hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-200 font-medium transition-colors cursor-pointer text-[11px]"
+                  title={sample.title}
                 >
-                  Load {sample.title.split(' ')[0]} {sample.modality.toUpperCase()}
+                  {sample.groundTruth ? `[${sample.groundTruth}] ` : ''}Load {sample.title.split(' ')[0]} {sample.modality.toUpperCase()}
                 </button>
               ))}
             </div>
