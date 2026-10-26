@@ -181,7 +181,7 @@ export const NewAnalysisView: React.FC<NewAnalysisViewProps> = ({
       // Candidates for API endpoint: local route first, then active public Cloudflare tunnel
       const endpoints = [
         '/api/ai/analyze-scan',
-        'https://avatar-importance-arrested-uncertainty.trycloudflare.com/api/ai/analyze-scan',
+        'https://financing-extreme-wider-jun.trycloudflare.com/api/ai/analyze-scan',
       ];
 
       let data: any = null;
