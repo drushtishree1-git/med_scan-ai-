@@ -10,5 +10,7 @@ data/chest_xray/
 *.keras
 __pycache__/
 .vercel/
-
 .vercel
+cloudflared.exe
+scratch_*.py
+data/*.db
