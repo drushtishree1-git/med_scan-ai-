@@ -35,6 +35,7 @@ import { ModalityBadge, StatusBadge, UrgencyBadge } from '../common/Badge';
 import { PrescriptionsAndPrecautionsCard } from './PrescriptionsAndPrecautionsCard';
 import { OfficialMedicalPrintReport } from './OfficialMedicalPrintReport';
 import { RadiologyMarkingViewer } from './RadiologyMarkingViewer';
+import { PatientFriendlyReportCard } from '../reports/PatientFriendlyReportCard';
 import { Volume2, VolumeX, Globe, Languages } from 'lucide-react';
 
 interface AnalysisResultsDisplayProps {
@@ -277,8 +278,19 @@ PubMed PMIDs: ${citations.map(c => `PMID:${c.pmid} (${c.journal})`).join(', ')}`
       {/* 2. MAIN RESULTS LAYOUT: UNIFIED, SIDE-BY-SIDE, OR TAB FOCUS */}
       <div className={`${layoutMode === 'split' ? 'grid grid-cols-1 lg:grid-cols-2 gap-6' : 'space-y-6'}`}>
 
-        {/* SECTION 0: TRAINED DEEP LEARNING MODEL INFERENCE CARD (Chest Radiograph Only) */}
-        {record.modality === 'xray' && record.trainedModelInference && (
+        {/* SECTION: PATIENT-FRIENDLY PLAIN-ENGLISH TRANSLATION & AUDIO READER */}
+        <PatientFriendlyReportCard
+          clinicalText={record.primaryFindingSummary || 'Comprehensive clinical diagnostic assessment complete.'}
+          categoryOrModality={record.modality === 'xray' ? 'Chest Radiography' : record.modality === 'mri' ? 'Brain MRI' : 'Laboratory'}
+          reportTitle={record.title}
+          patientName={record.patientName}
+          reportDate={record.submittedAt ? record.submittedAt.slice(0, 10) : undefined}
+          customPatientSummary={record.patientFriendlySummary}
+          initialMode="patient"
+        />
+
+        {/* SECTION 0: TRAINED DEEP LEARNING MODEL INFERENCE CARD (Chest Radiograph / Brain MRI) */}
+        {(record.modality === 'xray' || record.modality === 'mri') && record.trainedModelInference && (
           <div className="p-5 sm:p-6 rounded-3xl border border-purple-300/80 bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 text-white shadow-md space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -371,7 +383,7 @@ PubMed PMIDs: ${citations.map(c => `PMID:${c.pmid} (${c.journal})`).join(', ')}`
         )}
 
         {/* SECTION 0.4: EXPLAINABLE AI RADIOLOGY MARKINGS & GRAD-CAM OVERLAY */}
-        {record.modality === 'xray' && (
+        {(record.modality === 'xray' || record.modality === 'mri') && (
           <RadiologyMarkingViewer record={record} />
         )}
 

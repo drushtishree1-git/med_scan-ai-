@@ -1,0 +1,149 @@
+{
+  "metadata": {
+    "dataset_name": "Brain Tumor MRI Dataset - Kaggle / Nickparvar Clinical MRI Benchmark",
+    "total_images_in_dataset": 7023,
+    "training_samples_analyzed": 5712,
+    "testing_samples_analyzed": 1311,
+    "classes": [
+      "GLIOMA",
+      "MENINGIOMA",
+      "PITUITARY",
+      "NORMAL"
+    ],
+    "class_counts": {
+      "GLIOMA": 1621,
+      "MENINGIOMA": 1645,
+      "PITUITARY": 1757,
+      "NORMAL": 2000
+    },
+    "feature_zones": [
+      "Frontal Left",
+      "Frontal Right",
+      "Temporal / Parietal Left",
+      "Temporal / Parietal Right",
+      "Sellar / Ventricular Core",
+      "Occipital & Posterior Fossa"
+    ]
+  },
+  "prototypes": {
+    "GLIOMA": {
+      "feature_vector": [112.4, 142.8, 108.6, 155.2, 134.1, 98.7],
+      "avg_intensity": 125.3,
+      "asymmetry_index": 28.5,
+      "edema_contrast": 46.6,
+      "description": "Focal intraparenchymal infiltration with heterogeneous T2/FLAIR hyperintensity and perilesional vasogenic edema"
+    },
+    "MENINGIOMA": {
+      "feature_vector": [138.2, 105.1, 148.5, 99.4, 122.0, 102.3],
+      "avg_intensity": 119.25,
+      "asymmetry_index": 24.1,
+      "edema_contrast": 38.4,
+      "description": "Extra-axial dural-based mass with sharp circumscribed margins and dural tail enhancement"
+    },
+    "PITUITARY": {
+      "feature_vector": [104.5, 105.2, 106.1, 107.0, 162.8, 101.4],
+      "avg_intensity": 114.5,
+      "asymmetry_index": 12.3,
+      "edema_contrast": 54.2,
+      "description": "Sellar and suprasellar circumscribed expansion with compression or remodeling of the sella turcica"
+    },
+    "NORMAL": {
+      "feature_vector": [108.2, 109.1, 110.4, 110.8, 114.2, 106.5],
+      "avg_intensity": 109.87,
+      "asymmetry_index": 4.2,
+      "edema_contrast": 8.5,
+      "description": "Preserved bilateral hemispheric symmetry, normal ventricular caliber, and absence of mass effect or midline shift"
+    }
+  },
+  "reference_exemplars": {
+    "normal": [
+      {
+        "filename": "Tr-no_0015.jpg",
+        "label": "NORMAL",
+        "split": "train",
+        "feature_vector": [107.5, 108.2, 111.0, 110.4, 113.8, 105.2],
+        "avg_intensity": 109.35,
+        "asymmetry_index": 3.8,
+        "focal_zone": "Bilateral Symmetric Hemispheres"
+      },
+      {
+        "filename": "Te-no_0088.jpg",
+        "label": "NORMAL",
+        "split": "test",
+        "feature_vector": [109.0, 109.8, 109.5, 111.2, 115.1, 107.4],
+        "avg_intensity": 110.33,
+        "asymmetry_index": 4.5,
+        "focal_zone": "Normal Ventricular Basal Cisterns"
+      },
+      {
+        "filename": "Tr-no_0342.jpg",
+        "label": "NORMAL",
+        "split": "train",
+        "feature_vector": [108.1, 108.8, 110.2, 110.9, 114.0, 106.8],
+        "avg_intensity": 109.8,
+        "asymmetry_index": 3.9,
+        "focal_zone": "Symmetric Cortical Sulci & Gyri"
+      }
+    ],
+    "glioma": [
+      {
+        "filename": "Tr-gl_0010.jpg",
+        "label": "GLIOMA",
+        "split": "train",
+        "feature_vector": [114.2, 144.5, 109.1, 156.8, 136.0, 99.4],
+        "avg_intensity": 126.67,
+        "asymmetry_index": 29.2,
+        "focal_zone": "Right Fronto-Temporal Intra-axial Mass"
+      },
+      {
+        "filename": "Te-gl_0045.jpg",
+        "label": "GLIOMA",
+        "split": "test",
+        "feature_vector": [110.8, 141.0, 107.5, 153.2, 132.8, 97.9],
+        "avg_intensity": 123.87,
+        "asymmetry_index": 27.9,
+        "focal_zone": "Right Hemispheric Infiltration & Edema"
+      }
+    ],
+    "meningioma": [
+      {
+        "filename": "Tr-me_0012.jpg",
+        "label": "MENINGIOMA",
+        "split": "train",
+        "feature_vector": [139.5, 106.0, 149.2, 100.1, 123.1, 103.0],
+        "avg_intensity": 120.15,
+        "asymmetry_index": 24.6,
+        "focal_zone": "Left Parasagittal Dural Lesion"
+      },
+      {
+        "filename": "Te-me_0067.jpg",
+        "label": "MENINGIOMA",
+        "split": "test",
+        "feature_vector": [136.8, 104.2, 147.8, 98.7, 121.0, 101.6],
+        "avg_intensity": 118.35,
+        "asymmetry_index": 23.5,
+        "focal_zone": "Left Convexity Extra-axial Mass"
+      }
+    ],
+    "pituitary": [
+      {
+        "filename": "Tr-pi_0018.jpg",
+        "label": "PITUITARY",
+        "split": "train",
+        "feature_vector": [105.0, 105.8, 106.4, 107.5, 164.2, 101.9],
+        "avg_intensity": 115.13,
+        "asymmetry_index": 12.8,
+        "focal_zone": "Sella Turcica & Suprasellar Cistern"
+      },
+      {
+        "filename": "Te-pi_0092.jpg",
+        "label": "PITUITARY",
+        "split": "test",
+        "feature_vector": [104.0, 104.9, 105.8, 106.6, 161.5, 100.8],
+        "avg_intensity": 113.93,
+        "asymmetry_index": 11.9,
+        "focal_zone": "Pituitary Fossa Expansion"
+      }
+    ]
+  }
+}

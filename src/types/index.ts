@@ -103,11 +103,11 @@ export interface TrainedModelResult {
 
 export interface DatasetComparisonExemplar {
   filename: string;
-  label: 'PNEUMONIA' | 'NORMAL';
+  label: string;
   similarityPercentage: string;
   similarityScore: number;
-  avgOpacity: number;
-  asymmetry: number;
+  avgOpacity?: number;
+  asymmetry?: number;
   focalZone?: string;
   split?: string;
 }
@@ -115,21 +115,34 @@ export interface DatasetComparisonExemplar {
 export interface DatasetComparisonData {
   datasetName: string;
   totalDatasetScans: number;
-  matchedLabel: 'PNEUMONIA' | 'NORMAL';
+  matchedLabel: string;
   matchConfidence: number;
-  pneumoniaScore: number;
-  normalScore: number;
-  nearestPneumoniaScan: DatasetComparisonExemplar;
-  nearestNormalScan: DatasetComparisonExemplar;
+  pneumoniaScore?: number;
+  normalScore?: number;
+  nearestPneumoniaScan?: DatasetComparisonExemplar;
+  nearestNormalScan?: DatasetComparisonExemplar;
+  nearestAbnormalScan?: DatasetComparisonExemplar;
   exemplarMatches: DatasetComparisonExemplar[];
   comparativeMarkers: {
     marker: string;
     uploadedValue: string;
-    datasetPneumoniaBenchmark: string;
-    datasetNormalBenchmark: string;
+    datasetPneumoniaBenchmark?: string;
+    datasetNormalBenchmark?: string;
+    datasetBenchmark?: string;
     clinicalAssessment: string;
   }[];
   explanation: string;
+  modalityType?: 'xray' | 'mri' | 'lab_report';
+}
+
+export interface PatientFriendlySummary {
+  trafficLightStatus: 'green' | 'yellow' | 'red';
+  statusHeading: string;
+  plainEnglishExplanation: string;
+  keyTakeaways: string[];
+  actionSteps: string[];
+  questionsForDoctor: string[];
+  jargonGlossary: { term: string; explanation: string }[];
 }
 
 export interface LabTestItem {
@@ -197,6 +210,7 @@ export interface AnalysisRecord {
   gradCamOverlayUrl?: string;
   datasetComparison?: DatasetComparisonData;
   labReportData?: LabReportAnalysis;
+  patientFriendlySummary?: PatientFriendlySummary;
 }
 
 export interface MedicalReport {
@@ -217,6 +231,7 @@ export interface MedicalReport {
   prescriptions?: ClinicalPrescriptionItem[];
   precautions?: ClinicalPrecautions;
   treatmentOptions?: TreatmentAndManagementOptions;
+  patientFriendlySummary?: PatientFriendlySummary;
 }
 
 export interface ClinicalNotification {
