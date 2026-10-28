@@ -46,27 +46,15 @@ function runTrainedModelInference(imageBase64?: string): any {
       tempFilePath = path.join(os.tmpdir(), `temp_scan_${Date.now()}.jpg`);
       fs.writeFileSync(tempFilePath, Buffer.from(cleanBase64, 'base64'));
 
-      const pythonCandidates = [
-        'C:\\Users\\DRUSHTISHREE\\AppData\\Local\\Programs\\Python\\Python310\\python.exe',
-        'C:\\Users\\DRUSHTISHREE\\miniconda3\\python.exe',
-        'C:\\Users\\DRUSHTISHREE\\anaconda3\\python.exe',
-        'python',
-      ];
-      let pythonCmd = 'python';
-      if (process.platform === 'win32') {
-        for (const cand of pythonCandidates) {
-          if (cand.includes('\\')) {
-            if (fs.existsSync(cand)) {
-              pythonCmd = cand;
-              break;
-            }
-          } else {
-            pythonCmd = cand;
-          }
-        }
+      let pythonCmd = 'py';
+      let pythonArgs = ['-3.10', 'predict_xray.py', tempFilePath];
+      const python310Path = 'C:\\Users\\DRUSHTISHREE\\AppData\\Local\\Programs\\Python\\Python310\\python.exe';
+      if (fs.existsSync(python310Path)) {
+        pythonCmd = python310Path;
+        pythonArgs = ['predict_xray.py', tempFilePath];
       }
 
-      const output = execFileSync(pythonCmd, ['predict_xray.py', tempFilePath], {
+      const output = execFileSync(pythonCmd, pythonArgs, {
         cwd: process.cwd(),
         timeout: 60000,
         encoding: 'utf8',
