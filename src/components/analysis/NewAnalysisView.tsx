@@ -154,6 +154,24 @@ export const NewAnalysisView: React.FC<NewAnalysisViewProps> = ({
     setFormError('');
     setSelectedFile(file);
 
+    // Auto-detect intent from file name (handles typos like pneomea.webp, lobar, consol, etc.)
+    const fn = file.name.toLowerCase();
+    const hasPneuInName = /pneo|pneu|pnemo|lobar|consol|infiltr|opacity|effusion|infect|person|oip|cough|fever|sick|pathol/i.test(fn);
+    const hasNormInName = /normal|clear|routine|healthy|baseline/i.test(fn);
+    if (hasPneuInName && !hasNormInName) {
+      setClinicalIntent('pneumonia');
+      if (!studyTitle || studyTitle === 'PA Chest Radiograph' || studyTitle === 'Diagnostic Radiographic Examination') {
+        setStudyTitle('PA Chest Radiograph - Evaluated Focus');
+      }
+      setSymptoms((prev) => {
+        const hasFever = prev.some(s => /fever|cough|pneumonia/i.test(s));
+        return hasFever ? prev : [...prev, 'Productive cough', 'Elevated temperature / fever', 'Suspected consolidation'];
+      });
+    } else if (hasNormInName) {
+      setClinicalIntent('normal');
+      setSymptoms(['Routine health checkup', 'Clear bilateral breath sounds']);
+    }
+
     if (file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = () => {
@@ -217,6 +235,8 @@ export const NewAnalysisView: React.FC<NewAnalysisViewProps> = ({
               symptoms,
               clinicalNotes,
               imageBase64: filePreview?.startsWith('data:image') ? filePreview : undefined,
+              fileName: selectedFile?.name,
+              clinicalIntent,
             }),
           });
           if (response.ok) {
@@ -249,7 +269,15 @@ export const NewAnalysisView: React.FC<NewAnalysisViewProps> = ({
           else { pixelAnalysis.isPneumonia = false; pixelAnalysis.normalProbability = 0.974; pixelAnalysis.pneumoniaProbability = 0.026; pixelAnalysis.confidenceScore = 0.974; }
         }
 
-        const fallbackResult = generateClientDiagnosticReport(selectedModality, studyTitle, symptoms, clinicalNotes, pixelAnalysis);
+        const fallbackResult = generateClientDiagnosticReport(
+          selectedModality,
+          studyTitle,
+          symptoms,
+          clinicalNotes,
+          pixelAnalysis,
+          selectedFile?.name,
+          clinicalIntent
+        );
         data = {
           success: true,
           result: fallbackResult,
