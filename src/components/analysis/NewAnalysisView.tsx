@@ -308,6 +308,7 @@ export const NewAnalysisView: React.FC<NewAnalysisViewProps> = ({
         prescriptions: aiResult.prescriptions,
         precautions: aiResult.precautions,
         treatmentOptions: aiResult.treatmentOptions,
+        imageUrl: filePreview || undefined,
       };
 
       addAnalysisRecord(newRecord);

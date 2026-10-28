@@ -162,6 +162,8 @@ export interface AnalysisRecord {
   prescriptions?: ClinicalPrescriptionItem[];
   precautions?: ClinicalPrecautions;
   treatmentOptions?: TreatmentAndManagementOptions;
+  imageUrl?: string;
+  gradCamOverlayUrl?: string;
   labReportData?: LabReportAnalysis;
 }
 

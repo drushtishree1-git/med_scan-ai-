@@ -34,6 +34,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { ModalityBadge, StatusBadge, UrgencyBadge } from '../common/Badge';
 import { PrescriptionsAndPrecautionsCard } from './PrescriptionsAndPrecautionsCard';
 import { OfficialMedicalPrintReport } from './OfficialMedicalPrintReport';
+import { RadiologyMarkingViewer } from './RadiologyMarkingViewer';
 import { Volume2, VolumeX, Globe, Languages } from 'lucide-react';
 
 interface AnalysisResultsDisplayProps {
@@ -367,6 +368,11 @@ PubMed PMIDs: ${citations.map(c => `PMID:${c.pmid} (${c.journal})`).join(', ')}`
               </div>
             </div>
           </div>
+        )}
+
+        {/* SECTION 0.4: EXPLAINABLE AI RADIOLOGY MARKINGS & GRAD-CAM OVERLAY */}
+        {record.modality === 'xray' && (
+          <RadiologyMarkingViewer record={record} />
         )}
 
         {/* SECTION 0.5: DIAGNOSTIC LAB REPORT OCR & PARAMETER TRACKER */}
