@@ -97,8 +97,39 @@ export interface TrainedModelResult {
     NORMAL: number;
     PNEUMONIA: number;
     [key: string]: number;
-  };
   status?: string;
+  datasetComparison?: DatasetComparisonData;
+}
+
+export interface DatasetComparisonExemplar {
+  filename: string;
+  label: 'PNEUMONIA' | 'NORMAL';
+  similarityPercentage: string;
+  similarityScore: number;
+  avgOpacity: number;
+  asymmetry: number;
+  focalZone?: string;
+  split?: string;
+}
+
+export interface DatasetComparisonData {
+  datasetName: string;
+  totalDatasetScans: number;
+  matchedLabel: 'PNEUMONIA' | 'NORMAL';
+  matchConfidence: number;
+  pneumoniaScore: number;
+  normalScore: number;
+  nearestPneumoniaScan: DatasetComparisonExemplar;
+  nearestNormalScan: DatasetComparisonExemplar;
+  exemplarMatches: DatasetComparisonExemplar[];
+  comparativeMarkers: {
+    marker: string;
+    uploadedValue: string;
+    datasetPneumoniaBenchmark: string;
+    datasetNormalBenchmark: string;
+    clinicalAssessment: string;
+  }[];
+  explanation: string;
 }
 
 export interface LabTestItem {
@@ -164,6 +195,7 @@ export interface AnalysisRecord {
   treatmentOptions?: TreatmentAndManagementOptions;
   imageUrl?: string;
   gradCamOverlayUrl?: string;
+  datasetComparison?: DatasetComparisonData;
   labReportData?: LabReportAnalysis;
 }
 
