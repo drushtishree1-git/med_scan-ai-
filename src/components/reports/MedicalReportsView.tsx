@@ -17,13 +17,15 @@ import {
   Sparkles,
   Volume2,
   HelpCircle,
-  Stethoscope
+  Stethoscope,
+  Printer
 } from 'lucide-react';
 import { MedicalReport } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { EmptyState } from '../common/EmptyState';
 import { LoadingSkeletonTable } from '../common/LoadingSkeleton';
 import { PatientFriendlyReportCard } from './PatientFriendlyReportCard';
+import { PatientFriendlyPrintSummary } from './PatientFriendlyPrintSummary';
 import { generatePatientFriendlySummary } from '../../services/patientReportTranslator';
 
 interface MedicalReportsViewProps {
@@ -103,6 +105,7 @@ export const MedicalReportsView: React.FC<MedicalReportsViewProps> = ({
   const [activeReportModal, setActiveReportModal] = useState<MedicalReport | null>(null);
   const [modalMode, setModalMode] = useState<'patient' | 'doctor'>('patient');
   const [isAddReportModalOpen, setIsAddReportModalOpen] = useState(false);
+  const [printReportTarget, setPrintReportTarget] = useState<MedicalReport | null>(null);
 
   // New report form state
   const [newTitle, setNewTitle] = useState('');
@@ -297,7 +300,7 @@ export const MedicalReportsView: React.FC<MedicalReportsViewProps> = ({
                         {report.date}
                       </td>
                       <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => {
                               setActiveReportModal(report);
@@ -307,17 +310,26 @@ export const MedicalReportsView: React.FC<MedicalReportsViewProps> = ({
                             title="Open patient-friendly plain English translation with audio reader"
                           >
                             <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>🧑‍🤝‍🧑 Plain English</span>
+                            <span>Plain English</span>
+                          </button>
+                          <button
+                            onClick={() => setPrintReportTarget(report)}
+                            className="px-2 py-1 text-xs font-semibold rounded-lg text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                            title="Download or Print 1-page Patient PDF Summary"
+                          >
+                            <Printer className="w-3.5 h-3.5 text-slate-600" />
+                            <span>PDF</span>
                           </button>
                           <button
                             onClick={() => {
                               setActiveReportModal(report);
                               setModalMode('doctor');
                             }}
-                            className="px-2.5 py-1 text-xs font-medium rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                            className="px-2 py-1 text-xs font-medium rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                            title="Doctor / Technical View"
                           >
                             <Eye className="w-3.5 h-3.5" />
-                            <span>Doctor View</span>
+                            <span>Doctor</span>
                           </button>
                           <button
                             onClick={() => deleteReportRecord(report.id)}
@@ -489,7 +501,10 @@ export const MedicalReportsView: React.FC<MedicalReportsViewProps> = ({
                 categoryOrModality={activeReportModal.category}
                 reportTitle={activeReportModal.title}
                 patientName={activeReportModal.patientName}
+                patientId={activeReportModal.patientId}
                 reportDate={activeReportModal.date}
+                department={activeReportModal.department}
+                physicianName={activeReportModal.physicianName}
                 customPatientSummary={activeReportModal.patientFriendlySummary}
                 initialMode={modalMode}
               />
@@ -517,6 +532,20 @@ export const MedicalReportsView: React.FC<MedicalReportsViewProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Standalone Quick Print Patient Friendly PDF Modal */}
+      {printReportTarget && (
+        <PatientFriendlyPrintSummary
+          summary={printReportTarget.patientFriendlySummary || generatePatientFriendlySummary(printReportTarget.summary, printReportTarget.category, printReportTarget.title)}
+          patientName={printReportTarget.patientName}
+          patientId={printReportTarget.patientId}
+          reportTitle={printReportTarget.title}
+          reportDate={printReportTarget.date}
+          department={printReportTarget.department}
+          physicianName={printReportTarget.physicianName}
+          onClose={() => setPrintReportTarget(null)}
+        />
       )}
     </div>
   );

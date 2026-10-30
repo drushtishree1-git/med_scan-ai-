@@ -284,7 +284,10 @@ PubMed PMIDs: ${citations.map(c => `PMID:${c.pmid} (${c.journal})`).join(', ')}`
           categoryOrModality={record.modality === 'xray' ? 'Chest Radiography' : record.modality === 'mri' ? 'Brain MRI' : 'Laboratory'}
           reportTitle={record.title}
           patientName={record.patientName}
+          patientId={record.patientId}
           reportDate={record.submittedAt ? record.submittedAt.slice(0, 10) : undefined}
+          department={record.modality === 'xray' ? 'Diagnostic Radiology' : record.modality === 'mri' ? 'Neuroradiology Division' : 'Clinical Pathology'}
+          physicianName={record.doctorName || 'Dr. Drushti Shree, MD'}
           customPatientSummary={record.patientFriendlySummary}
           initialMode="patient"
         />
