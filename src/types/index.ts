@@ -160,6 +160,9 @@ export interface PatientFriendlySummary {
 
 export interface LabTestItem {
   testName: string;
+  simpleName?: string; // Plain-English everyday name, e.g. "Oxygen Carrier in Blood"
+  whatItDoes?: string; // Simple explanation of what this test measures
+  whatYourNumberMeans?: string; // Friendly plain-English meaning of this specific score
   observedValue: string;
   units: string;
   referenceInterval: string;
@@ -184,6 +187,14 @@ export interface LabReportAnalysis {
     };
   };
   overallSummary?: string;
+  simplifiedPatientSummary?: {
+    headline: string;
+    simpleExplanation: string;
+    trafficLightStatus: 'green' | 'yellow' | 'red';
+    thingsGoingWell: string[];
+    thingsToKeepAnEyeOn: string[];
+    easyActionSteps: string[];
+  };
   labPanels?: LabPanel[];
   criticalOrAbnormalFindings?: string[];
   differentialInterpretations?: string[];

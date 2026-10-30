@@ -61,6 +61,7 @@ export const AnalysisResultsDisplay: React.FC<AnalysisResultsDisplayProps> = ({
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [translatedSynthesis, setTranslatedSynthesis] = useState<string | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [labViewMode, setLabViewMode] = useState<'patient' | 'clinical'>('patient');
 
   const handleTranslateFindings = async () => {
     if (!record.primaryFindingSummary) return;
@@ -515,110 +516,315 @@ PubMed PMIDs: ${citations.map(c => `PMID:${c.pmid} (${c.journal})`).join(', ')}`
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-xl bg-white/10 text-emerald-300 text-xs font-bold border border-white/15">
-                  CLSI & WHO Standardized
-                </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center bg-black/40 p-1 rounded-2xl border border-white/15">
+                  <button
+                    type="button"
+                    onClick={() => setLabViewMode('patient')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      labViewMode === 'patient'
+                        ? 'bg-emerald-400 text-slate-950 shadow-md font-black'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    <User className="w-3.5 h-3.5" />
+                    <span>Simple Patient View</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLabViewMode('clinical')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      labViewMode === 'clinical'
+                        ? 'bg-white text-slate-950 shadow-md font-black'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    <Stethoscope className="w-3.5 h-3.5" />
+                    <span>Doctor / Lab Table</span>
+                  </button>
+                </div>
               </div>
             </div>
 
             <div className="p-5 sm:p-6 space-y-6">
-              {/* Overall Summary Box */}
-              {record.labReportData?.overallSummary && (
-                <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 text-xs text-emerald-950 leading-relaxed space-y-1">
-                  <div className="font-bold text-emerald-900 flex items-center gap-1.5 uppercase text-[10px] tracking-wider">
-                    <Activity className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Laboratory Synthesis Summary</span>
-                  </div>
-                  <p className="text-slate-800 font-medium">{record.labReportData.overallSummary}</p>
-                </div>
-              )}
+              {/* PATIENT-FRIENDLY SIMPLIFIED VIEW */}
+              {labViewMode === 'patient' ? (
+                <div className="space-y-6">
+                  {/* Simplified Patient Headline Card */}
+                  <div className={`p-5 rounded-3xl border ${
+                    record.labReportData?.simplifiedPatientSummary?.trafficLightStatus === 'yellow'
+                      ? 'bg-gradient-to-br from-amber-50 via-white to-orange-50/50 border-amber-300/80'
+                      : 'bg-gradient-to-br from-emerald-50 via-white to-teal-50/50 border-emerald-300/80'
+                  } shadow-xs space-y-3`}>
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
+                          record.labReportData?.simplifiedPatientSummary?.trafficLightStatus === 'yellow'
+                            ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                            : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                        }`}>
+                          {record.labReportData?.simplifiedPatientSummary?.trafficLightStatus === 'yellow'
+                            ? '🟡 Mild Findings — Easy to Address'
+                            : '🟢 All Results Healthy & Normal'}
+                        </span>
+                        <span className="text-xs text-slate-500 font-semibold">Plain-English Translation</span>
+                      </div>
+                    </div>
 
-              {/* Lab Panels Table */}
-              {record.labReportData?.labPanels && record.labReportData.labPanels.map((panel, pIdx) => (
-                <div key={pIdx} className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                      <span>{panel.panelName}</span>
+                    <h4 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                      {record.labReportData?.simplifiedPatientSummary?.headline || 'Your Blood Test Results in Everyday Words'}
                     </h4>
-                    <span className="text-[11px] font-semibold text-slate-500">
-                      {panel.results.length} Analytes Measured
-                    </span>
+
+                    <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                      {record.labReportData?.simplifiedPatientSummary?.simpleExplanation ||
+                        record.labReportData?.overallSummary ||
+                        'Your test results have been translated from clinical medical codes into plain, clear everyday language for you and your family.'}
+                    </p>
+
+                    {/* What's Going Well vs What to Watch */}
+                    {record.labReportData?.simplifiedPatientSummary && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                        <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-xs space-y-1.5">
+                          <div className="font-bold text-emerald-900 flex items-center gap-1.5 uppercase text-[10px] tracking-wider">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>What Is Going Great in Your Body</span>
+                          </div>
+                          <ul className="space-y-1 text-slate-700 font-medium">
+                            {record.labReportData.simplifiedPatientSummary.thingsGoingWell.map((w, idx) => (
+                              <li key={idx} className="flex items-start gap-1.5">
+                                <span className="text-emerald-600 font-bold">&bull;</span>
+                                <span>{w}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs space-y-1.5">
+                          <div className="font-bold text-amber-900 flex items-center gap-1.5 uppercase text-[10px] tracking-wider">
+                            <Info className="w-3.5 h-3.5 text-amber-600" />
+                            <span>Things to Pay Attention To</span>
+                          </div>
+                          <ul className="space-y-1 text-slate-700 font-medium">
+                            {record.labReportData.simplifiedPatientSummary.thingsToKeepAnEyeOn.map((a, idx) => (
+                              <li key={idx} className="flex items-start gap-1.5">
+                                <span className="text-amber-600 font-bold">&bull;</span>
+                                <span>{a}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Everyday Action Steps */}
+                    {record.labReportData?.simplifiedPatientSummary?.easyActionSteps && (
+                      <div className="p-3.5 rounded-2xl bg-blue-50/60 border border-blue-200 text-xs space-y-1.5">
+                        <div className="font-bold text-blue-900 flex items-center gap-1.5 uppercase text-[10px] tracking-wider">
+                          <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Simple Everyday Steps You Can Take (Diet & Lifestyle)</span>
+                        </div>
+                        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-slate-700 font-medium">
+                          {record.labReportData.simplifiedPatientSummary.easyActionSteps.map((step, idx) => (
+                            <li key={idx} className="flex items-start gap-1.5">
+                              <span className="text-blue-600 font-bold">&#10003;</span>
+                              <span>{step}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-2xs">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
-                        <tr>
-                          <th className="py-3 px-4">Test Parameter</th>
-                          <th className="py-3 px-4">Observed Value</th>
-                          <th className="py-3 px-4">Reference Interval</th>
-                          <th className="py-3 px-4">Units</th>
-                          <th className="py-3 px-4 text-center">Status Flag</th>
-                          <th className="py-3 px-4">Clinical Significance</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 font-medium">
-                        {panel.results.map((item, rIdx) => {
-                          const isNormal = item.flag === 'NORMAL';
-                          const isHigh = item.flag === 'HIGH';
-                          const isLow = item.flag === 'LOW';
-                          const isCrit = item.flag === 'CRITICAL';
+                  {/* Simplified Parameter Cards Grid */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-emerald-600" />
+                        <span>Each Test Explained in Simple Everyday Terms</span>
+                      </h4>
+                      <span className="text-[11px] text-slate-500 font-medium">
+                        Click "Doctor / Lab Table" for raw technical units
+                      </span>
+                    </div>
 
-                          return (
-                            <tr
-                              key={rIdx}
-                              className={`transition-colors ${
-                                isCrit
-                                  ? 'bg-rose-50/80 hover:bg-rose-100/80'
-                                  : isHigh
-                                  ? 'bg-amber-50/40 hover:bg-amber-50/70'
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                      {record.labReportData?.labPanels?.flatMap(p => p.results).map((item, idx) => {
+                        const isNormal = item.flag === 'NORMAL';
+                        const isLow = item.flag === 'LOW';
+                        const isHigh = item.flag === 'HIGH';
+                        const isCrit = item.flag === 'CRITICAL';
+
+                        return (
+                          <div
+                            key={idx}
+                            className={`p-4 rounded-2xl border transition-all ${
+                              isCrit
+                                ? 'bg-rose-50/70 border-rose-300'
+                                : isHigh
+                                ? 'bg-amber-50/60 border-amber-300'
+                                : isLow
+                                ? 'bg-blue-50/60 border-blue-300'
+                                : 'bg-slate-50/80 border-slate-200 hover:border-emerald-300'
+                            } shadow-2xs space-y-2`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <h5 className="font-bold text-sm text-slate-900 leading-tight">
+                                  {item.simpleName || item.testName}
+                                </h5>
+                                <div className="text-[11px] text-slate-500 font-medium mt-0.5">
+                                  Medical term: <span className="font-mono text-slate-700 font-semibold">{item.testName}</span>
+                                </div>
+                              </div>
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${
+                                  isCrit
+                                    ? 'bg-rose-600 text-white'
+                                    : isHigh
+                                    ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                    : isLow
+                                    ? 'bg-blue-100 text-blue-900 border border-blue-300'
+                                    : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                                }`}
+                              >
+                                {isNormal
+                                  ? '✅ Healthy / Normal'
                                   : isLow
-                                  ? 'bg-blue-50/40 hover:bg-blue-50/70'
-                                  : 'hover:bg-slate-50/80'
-                              }`}
-                            >
-                              <td className="py-3 px-4 font-bold text-slate-900">
-                                {item.testName}
-                              </td>
-                              <td className="py-3 px-4 font-mono font-bold text-sm">
-                                <span className={isCrit ? 'text-rose-600' : isHigh ? 'text-amber-600' : isLow ? 'text-blue-600' : 'text-slate-800'}>
-                                  {item.observedValue}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4 font-mono text-slate-600">
-                                {item.referenceInterval}
-                              </td>
-                              <td className="py-3 px-4 text-slate-500 font-mono">
-                                {item.units}
-                              </td>
-                              <td className="py-3 px-4 text-center">
-                                <span
-                                  className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1 ${
+                                  ? '📉 Slightly Low'
+                                  : isHigh
+                                  ? '📈 Slightly High'
+                                  : '⚠️ Doctor Review'}
+                              </span>
+                            </div>
+
+                            <div className="flex items-baseline gap-2 py-1 border-y border-black/5">
+                              <span className="text-xl font-black text-slate-900 font-mono">
+                                {item.observedValue}
+                              </span>
+                              <span className="text-xs text-slate-500 font-medium">{item.units}</span>
+                              <span className="text-[11px] text-slate-400 font-medium ml-auto">
+                                Healthy Target: <span className="text-slate-600 font-semibold">{item.referenceInterval}</span>
+                              </span>
+                            </div>
+
+                            {item.whatItDoes && (
+                              <div className="text-xs text-slate-600 leading-relaxed">
+                                <span className="font-bold text-slate-700">What it does: </span>
+                                <span>{item.whatItDoes}</span>
+                              </div>
+                            )}
+
+                            <div className="text-xs text-slate-800 font-medium leading-relaxed bg-white/70 p-2 rounded-xl border border-black/5">
+                              <span className="font-bold text-slate-900">What this means for you: </span>
+                              <span>{item.whatYourNumberMeans || item.clinicalSignificance}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* CLINICAL / DOCTOR TABULAR VIEW */
+                <div className="space-y-6">
+                  {/* Overall Summary Box */}
+                  {record.labReportData?.overallSummary && (
+                    <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 text-xs text-emerald-950 leading-relaxed space-y-1">
+                      <div className="font-bold text-emerald-900 flex items-center gap-1.5 uppercase text-[10px] tracking-wider">
+                        <Activity className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Laboratory Synthesis Summary</span>
+                      </div>
+                      <p className="text-slate-800 font-medium">{record.labReportData.overallSummary}</p>
+                    </div>
+                  )}
+
+                  {/* Lab Panels Table */}
+                  {record.labReportData?.labPanels && record.labReportData.labPanels.map((panel, pIdx) => (
+                    <div key={pIdx} className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                          <span>{panel.panelName}</span>
+                        </h4>
+                        <span className="text-[11px] font-semibold text-slate-500">
+                          {panel.results.length} Analytes Measured
+                        </span>
+                      </div>
+
+                      <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-2xs">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
+                            <tr>
+                              <th className="py-3 px-4">Test Parameter</th>
+                              <th className="py-3 px-4">Observed Value</th>
+                              <th className="py-3 px-4">Reference Interval</th>
+                              <th className="py-3 px-4">Units</th>
+                              <th className="py-3 px-4 text-center">Status Flag</th>
+                              <th className="py-3 px-4">Clinical Significance</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 font-medium">
+                            {panel.results.map((item, rIdx) => {
+                              const isNormal = item.flag === 'NORMAL';
+                              const isHigh = item.flag === 'HIGH';
+                              const isLow = item.flag === 'LOW';
+                              const isCrit = item.flag === 'CRITICAL';
+
+                              return (
+                                <tr
+                                  key={rIdx}
+                                  className={`transition-colors ${
                                     isCrit
-                                      ? 'bg-rose-600 text-white animate-pulse shadow-xs'
+                                      ? 'bg-rose-50/80 hover:bg-rose-100/80'
                                       : isHigh
-                                      ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                      ? 'bg-amber-50/40 hover:bg-amber-50/70'
                                       : isLow
-                                      ? 'bg-blue-100 text-blue-900 border border-blue-300'
-                                      : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                                      ? 'bg-blue-50/40 hover:bg-blue-50/70'
+                                      : 'hover:bg-slate-50/80'
                                   }`}
                                 >
-                                  {item.flag}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4 text-[11px] text-slate-600 max-w-xs leading-relaxed">
-                                {item.clinicalSignificance}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                                  <td className="py-3 px-4 font-bold text-slate-900">
+                                    {item.testName}
+                                  </td>
+                                  <td className="py-3 px-4 font-mono font-bold text-sm">
+                                    <span className={isCrit ? 'text-rose-600' : isHigh ? 'text-amber-600' : isLow ? 'text-blue-600' : 'text-slate-800'}>
+                                      {item.observedValue}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 px-4 font-mono text-slate-600">
+                                    {item.referenceInterval}
+                                  </td>
+                                  <td className="py-3 px-4 text-slate-500 font-mono">
+                                    {item.units}
+                                  </td>
+                                  <td className="py-3 px-4 text-center">
+                                    <span
+                                      className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1 ${
+                                        isCrit
+                                          ? 'bg-rose-600 text-white animate-pulse shadow-xs'
+                                          : isHigh
+                                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                          : isLow
+                                          ? 'bg-blue-100 text-blue-900 border border-blue-300'
+                                          : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                                      }`}
+                                    >
+                                      {item.flag}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 px-4 text-[11px] text-slate-600 max-w-xs leading-relaxed">
+                                    {item.clinicalSignificance}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
 
               {/* Critical Findings & Differential Interpretations Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-2">

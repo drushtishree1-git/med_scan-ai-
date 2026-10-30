@@ -206,17 +206,98 @@ export function generateClientDiagnosticReport(
               specimenType: 'Whole Blood (K2-EDTA) & Venous Serum'
             }
           },
-          overallSummary: 'Microcytic hypochromic anemia with depleted iron reserves. Metabolic, renal, and hepatic functions remain healthy and intact.',
+          overallSummary: 'Mild iron deficiency detected, explaining feelings of tiredness. All vital organ functions (kidneys, liver, blood sugar) remain completely healthy and strong.',
+          simplifiedPatientSummary: {
+            headline: 'Your Blood Test Explained in Simple Words: Mild Iron Shortage',
+            simpleExplanation: 'Your body is running a little low on iron right now—just like a phone battery running on 20%. Iron is what your body uses to build hemoglobin, the protein that delivers fresh oxygen to your muscles and brain. When iron is low, less oxygen gets delivered, which explains why you might be feeling extra tired or cold. The great news is that your kidneys, liver, immune system, and platelets are in ideal health, and mild iron shortages are very easy to reverse with everyday nutritious foods and a simple iron supplement.',
+            trafficLightStatus: 'yellow',
+            thingsGoingWell: [
+              'Your kidneys are filtering waste cleanly and effectively',
+              'Your liver cells are healthy with zero stress or inflammation',
+              'Your immune infection-fighting cells (WBC) are completely normal',
+              'Your blood clotting (platelets) is working properly'
+            ],
+            thingsToKeepAnEyeOn: [
+              'Hemoglobin is 10.1 g/dL (slightly below the 12–16 target), which means less oxygen delivery to your body',
+              'Red blood cells are smaller than usual because they are waiting for more iron to grow to full size'
+            ],
+            easyActionSteps: [
+              'Eat more iron-rich everyday foods: spinach, beans, lentils, chickpeas, eggs, and lean meats',
+              'Drink fresh orange juice or eat citrus fruits with your meals (Vitamin C helps your gut absorb twice as much iron)',
+              'Avoid drinking tea, coffee, or milk right around your meals, as calcium and tannins block iron absorption',
+              'Talk to your doctor about taking a gentle oral iron supplement for 60 to 90 days'
+            ]
+          },
           labPanels: [
             {
-              panelName: 'Complete Blood Count (CBC with Automated Differential)',
+              panelName: 'Complete Blood Count (CBC & Iron Overview)',
               results: [
-                { testName: 'Hemoglobin (Hb)', observedValue: '10.1', units: 'g/dL', referenceInterval: '12.0 - 16.0', flag: 'LOW', clinicalSignificance: 'Reduced oxygen-carrying capacity consistent with moderate anemia.' },
-                { testName: 'Hematocrit (Hct)', observedValue: '31.4', units: '%', referenceInterval: '37.0 - 48.0', flag: 'LOW', clinicalSignificance: 'Decreased circulating red blood cell volume.' },
-                { testName: 'Mean Corpuscular Volume (MCV)', observedValue: '72.8', units: 'fL', referenceInterval: '80.0 - 100.0', flag: 'LOW', clinicalSignificance: 'Microcytosis indicating impaired hemoglobin synthesis.' },
-                { testName: 'Red Cell Distribution Width (RDW)', observedValue: '16.2', units: '%', referenceInterval: '11.5 - 14.5', flag: 'HIGH', clinicalSignificance: 'Anisocytosis reflecting mixed population of normal and small red cells.' },
-                { testName: 'White Blood Cell Count (WBC)', observedValue: '6.8', units: '10^3/uL', referenceInterval: '4.5 - 11.0', flag: 'NORMAL', clinicalSignificance: 'Healthy baseline leukocyte count without active leukocytosis.' },
-                { testName: 'Platelet Count', observedValue: '280', units: '10^3/uL', referenceInterval: '150 - 400', flag: 'NORMAL', clinicalSignificance: 'Optimal platelet homeostasis.' }
+                {
+                  testName: 'Hemoglobin (Hb)',
+                  simpleName: 'Blood Oxygen Carrier',
+                  whatItDoes: 'The protein inside your red blood cells that carries fresh oxygen from your lungs to your brain and muscles.',
+                  whatYourNumberMeans: 'Your score (10.1) is slightly low. Because less oxygen reaches your muscles, you may feel tired or run down. Easily restored with iron.',
+                  observedValue: '10.1',
+                  units: 'g/dL',
+                  referenceInterval: '12.0 - 16.0',
+                  flag: 'LOW',
+                  clinicalSignificance: 'Reduced oxygen-carrying capacity consistent with mild iron-deficiency anemia.'
+                },
+                {
+                  testName: 'Hematocrit (Hct)',
+                  simpleName: 'Red Blood Cell Volume',
+                  whatItDoes: 'The percentage of your total blood volume that consists of active red blood cells.',
+                  whatYourNumberMeans: 'At 31.4%, this is a bit lower than the 37-48% target, confirming the mild shortage of red blood cells.',
+                  observedValue: '31.4',
+                  units: '%',
+                  referenceInterval: '37.0 - 48.0',
+                  flag: 'LOW',
+                  clinicalSignificance: 'Decreased circulating red blood cell volume.'
+                },
+                {
+                  testName: 'Mean Corpuscular Volume (MCV)',
+                  simpleName: 'Red Blood Cell Size',
+                  whatItDoes: 'Shows the average physical size of each red blood cell in your bloodstream.',
+                  whatYourNumberMeans: 'At 72.8, your red cells are slightly smaller than normal because they do not have enough iron to reach full adult size.',
+                  observedValue: '72.8',
+                  units: 'fL',
+                  referenceInterval: '80.0 - 100.0',
+                  flag: 'LOW',
+                  clinicalSignificance: 'Microcytosis indicating impaired hemoglobin synthesis.'
+                },
+                {
+                  testName: 'Red Cell Distribution Width (RDW)',
+                  simpleName: 'Variation in Cell Sizes',
+                  whatItDoes: 'Measures whether all your red cells are identical in size or if you have a mix of new small and older normal cells.',
+                  whatYourNumberMeans: 'A slightly higher number (16.2%) shows your body is adapting and actively working to produce new cells.',
+                  observedValue: '16.2',
+                  units: '%',
+                  referenceInterval: '11.5 - 14.5',
+                  flag: 'HIGH',
+                  clinicalSignificance: 'Anisocytosis reflecting mixed population of normal and small red cells.'
+                },
+                {
+                  testName: 'White Blood Cell Count (WBC)',
+                  simpleName: 'Immune & Infection Fighters',
+                  whatItDoes: 'Your body\'s defense soldiers that protect you from bacteria, viruses, and colds.',
+                  whatYourNumberMeans: 'At 6.8, completely healthy and normal! Your immune system is strong and has no active infection.',
+                  observedValue: '6.8',
+                  units: '10^3/uL',
+                  referenceInterval: '4.5 - 11.0',
+                  flag: 'NORMAL',
+                  clinicalSignificance: 'Healthy baseline leukocyte count without active leukocytosis.'
+                },
+                {
+                  testName: 'Platelet Count',
+                  simpleName: 'Clotting & Wound Healers',
+                  whatItDoes: 'Tiny cell fragments that stick together to stop bleeding whenever you get a papercut or scrape.',
+                  whatYourNumberMeans: 'At 280, optimal and healthy. Your blood will clot and heal completely normally.',
+                  observedValue: '280',
+                  units: '10^3/uL',
+                  referenceInterval: '150 - 400',
+                  flag: 'NORMAL',
+                  clinicalSignificance: 'Optimal platelet homeostasis and healthy clotting.'
+                }
               ]
             }
           ]
@@ -306,16 +387,85 @@ export function generateClientDiagnosticReport(
             specimenType: 'Whole Blood (K2-EDTA) & Venous Serum'
           }
         },
-        overallSummary: 'All analyzed laboratory biomarkers are strictly within established clinical reference ranges.',
+        overallSummary: 'All analyzed laboratory biomarkers are strictly within established healthy reference ranges. Your body systems are functioning optimally.',
+        simplifiedPatientSummary: {
+          headline: 'Great News: All Your Blood & Lab Results are Healthy and Normal!',
+          simpleExplanation: 'Every single test parameter came back in the ideal healthy range. Your blood cells, oxygen carriers, immune defense, kidney filters, and blood sugar are working in total harmony. There are no signs of anemia, infection, inflammation, or metabolic strain.',
+          trafficLightStatus: 'green',
+          thingsGoingWell: [
+            'Blood oxygen carrier (Hemoglobin 14.2 g/dL) is in the perfect sweet spot for full energy',
+            'Immune infection fighters (WBC 6.5) are completely normal with zero signs of illness',
+            'Blood clotting and healing cells (Platelets 250) are at ideal baseline levels',
+            'Red blood cells are uniform, healthy, and normally sized (MCV 88.4 fL)'
+          ],
+          thingsToKeepAnEyeOn: [
+            'None! Every single biomarker aligns with standard healthy medical guidelines.'
+          ],
+          easyActionSteps: [
+            'Keep up your healthy daily habits: regular hydration, balanced home meals, and restful sleep',
+            'Stay physically active with light walking or exercise',
+            'Schedule your next routine annual physical exam next year'
+          ]
+        },
         labPanels: [
           {
-            panelName: 'Complete Blood Count (CBC with Automated Differential)',
+            panelName: 'Complete Blood Count (CBC Overview)',
             results: [
-              { testName: 'Hemoglobin (Hb)', observedValue: '14.2', units: 'g/dL', referenceInterval: '12.0 - 16.0', flag: 'NORMAL', clinicalSignificance: 'Healthy tissue oxygenation.' },
-              { testName: 'Hematocrit (Hct)', observedValue: '42.5', units: '%', referenceInterval: '37.0 - 48.0', flag: 'NORMAL', clinicalSignificance: 'Normal circulating RBC volume.' },
-              { testName: 'Mean Corpuscular Volume (MCV)', observedValue: '88.4', units: 'fL', referenceInterval: '80.0 - 100.0', flag: 'NORMAL', clinicalSignificance: 'Normal normocytic RBC size.' },
-              { testName: 'White Blood Cell Count (WBC)', observedValue: '6.5', units: '10^3/uL', referenceInterval: '4.5 - 11.0', flag: 'NORMAL', clinicalSignificance: 'Normal immune leukocyte count.' },
-              { testName: 'Platelet Count', observedValue: '250', units: '10^3/uL', referenceInterval: '150 - 400', flag: 'NORMAL', clinicalSignificance: 'Normal coagulation baseline.' }
+              {
+                testName: 'Hemoglobin (Hb)',
+                simpleName: 'Blood Oxygen Carrier',
+                whatItDoes: 'The protein inside your red blood cells that carries fresh oxygen from your lungs to your muscles and brain.',
+                whatYourNumberMeans: 'At 14.2 g/dL, your blood has excellent oxygen-carrying strength and vitality.',
+                observedValue: '14.2',
+                units: 'g/dL',
+                referenceInterval: '12.0 - 16.0',
+                flag: 'NORMAL',
+                clinicalSignificance: 'Healthy tissue oxygenation and robust energy levels.'
+              },
+              {
+                testName: 'Hematocrit (Hct)',
+                simpleName: 'Red Blood Cell Volume',
+                whatItDoes: 'The percentage of your total blood volume that consists of active red blood cells.',
+                whatYourNumberMeans: 'At 42.5%, your red cell concentration is in the ideal balanced range.',
+                observedValue: '42.5',
+                units: '%',
+                referenceInterval: '37.0 - 48.0',
+                flag: 'NORMAL',
+                clinicalSignificance: 'Normal circulating red blood cell volume.'
+              },
+              {
+                testName: 'Mean Corpuscular Volume (MCV)',
+                simpleName: 'Red Blood Cell Size',
+                whatItDoes: 'Measures the average physical size of each red blood cell in your bloodstream.',
+                whatYourNumberMeans: 'At 88.4, your red cells are perfectly formed, full-sized, and mature.',
+                observedValue: '88.4',
+                units: 'fL',
+                referenceInterval: '80.0 - 100.0',
+                flag: 'NORMAL',
+                clinicalSignificance: 'Normal normocytic red blood cell size.'
+              },
+              {
+                testName: 'White Blood Cell Count (WBC)',
+                simpleName: 'Immune & Infection Fighters',
+                whatItDoes: 'Your body\'s immune shield that fights off bacteria, viruses, and illnesses.',
+                whatYourNumberMeans: 'At 6.5, your immune system is calm, vigilant, and free from active infection.',
+                observedValue: '6.5',
+                units: '10^3/uL',
+                referenceInterval: '4.5 - 11.0',
+                flag: 'NORMAL',
+                clinicalSignificance: 'Normal immune leukocyte count without active infection.'
+              },
+              {
+                testName: 'Platelet Count',
+                simpleName: 'Clotting & Wound Healers',
+                whatItDoes: 'Cell fragments that stick together to seal any cut or scratch promptly.',
+                whatYourNumberMeans: 'At 250, your clotting and natural healing capabilities are in top shape.',
+                observedValue: '250',
+                units: '10^3/uL',
+                referenceInterval: '150 - 400',
+                flag: 'NORMAL',
+                clinicalSignificance: 'Normal coagulation baseline and wound healing.'
+              }
             ]
           }
         ]
