@@ -7,6 +7,7 @@ Classes: glioma, meningioma, notumor, pituitary
 import os
 import sys
 import argparse
+import gc
 import time
 from pathlib import Path
 
@@ -31,10 +32,16 @@ DEFAULT_DATASET = Path(r"C:\Users\DRUSHTISHREE\.cache\kagglehub\datasets\masoudn
 CLASS_NAMES = ["glioma", "meningioma", "notumor", "pituitary"]
 
 
+class MemoryCleanupCallback(callbacks.Callback):
+    def on_epoch_end(self, epoch, logs=None):
+        gc.collect()
+
+
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Train MediScan AI Brain Tumor MRI Classifier")
     parser.add_argument("--data_dir", type=str, default=str(DEFAULT_DATASET), help="Path to brain MRI dataset")
-    parser.add_argument("--epochs", type=int, default=12, help="Number of training epochs")
+    parser.add_argument("--epochs", type=int, default=5, help="Number of initial training epochs")
+    parser.add_argument("--finetune_epochs", type=int, default=0, help="Number of fine-tuning epochs (default: 0)")
     parser.add_argument("--batch_size", type=int, default=16, help="Batch size (default: 16)")
     parser.add_argument("--img_size", type=int, default=224, help="Image resolution (default: 224)")
     parser.add_argument("--lr", type=float, default=1e-4, help="Initial learning rate")
@@ -50,9 +57,11 @@ def build_datasets(data_dir: Path, img_size: int, batch_size: int):
     if not train_dir.exists() or not test_dir.exists():
         raise FileNotFoundError(f"Missing Training or Testing split at: {data_dir}")
 
-    print(f"[*] Loading training split from {train_dir}...")
-    train_ds = keras.utils.image_dataset_from_directory(
+    print(f"[*] Loading training & validation splits (85/15) from {train_dir}...")
+    train_ds, val_ds = keras.utils.image_dataset_from_directory(
         train_dir,
+        validation_split=0.15,
+        subset="both",
         image_size=(img_size, img_size),
         batch_size=batch_size,
         label_mode="categorical",
@@ -69,17 +78,12 @@ def build_datasets(data_dir: Path, img_size: int, batch_size: int):
         shuffle=False,
     )
 
-    # Split train into train (85%) and validation (15%)
-    val_size = int(len(train_ds) * 0.15)
-    val_ds = train_ds.take(val_size)
-    train_ds = train_ds.skip(val_size)
-
     # Data Augmentation pipeline
     data_augmentation = keras.Sequential([
         layers.RandomFlip("horizontal"),
-        layers.RandomRotation(0.10),
-        layers.RandomZoom(0.10),
-        layers.RandomContrast(0.10),
+        layers.RandomRotation(0.08),
+        layers.RandomZoom(0.08),
+        layers.RandomContrast(0.08),
     ], name="data_augmentation")
 
     autotune = tf.data.AUTOTUNE
@@ -100,20 +104,21 @@ def build_brain_model(backbone_name: str, img_size: int, lr: float):
         base_model = keras.applications.MobileNetV2(
             include_top=False, weights="imagenet", input_shape=(img_size, img_size, 3)
         )
-        x = base_model(preprocessed)
+        base_model.trainable = False
+        x = base_model(preprocessed, training=False)
     elif backbone_name == "EfficientNetB0":
         base_model = keras.applications.EfficientNetB0(
             include_top=False, weights="imagenet", input_shape=(img_size, img_size, 3)
         )
-        x = base_model(inputs)
+        base_model.trainable = False
+        x = base_model(inputs, training=False)
     else:
         preprocessed = keras.applications.xception.preprocess_input(inputs)
         base_model = keras.applications.Xception(
             include_top=False, weights="imagenet", input_shape=(img_size, img_size, 3)
         )
-        x = base_model(preprocessed)
-
-    base_model.trainable = False
+        base_model.trainable = False
+        x = base_model(preprocessed, training=False)
 
     x = layers.GlobalAveragePooling2D(name="gap")(x)
     x = layers.BatchNormalization()(x)
@@ -157,6 +162,7 @@ def main():
         callbacks.EarlyStopping(monitor="val_loss", patience=4, restore_best_weights=True, verbose=1),
         callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=2, verbose=1),
         callbacks.ModelCheckpoint(str(output_path), monitor="val_accuracy", save_best_only=True, verbose=1),
+        MemoryCleanupCallback(),
     ]
 
     print(f"[*] Commencing initial training (frozen backbone) for {args.epochs} epochs...")
@@ -181,19 +187,24 @@ def main():
         metrics=["accuracy", keras.metrics.Precision(name="precision"), keras.metrics.Recall(name="recall"), keras.metrics.AUC(name="auc")],
     )
 
-    print("[*] Fine-tuning model for 5 additional epochs...")
-    model.fit(
-        train_ds,
-        validation_data=val_ds,
-        epochs=5,
-        callbacks=cb_list,
-        verbose=1,
-    )
+    if args.finetune_epochs > 0:
+        print(f"[*] Fine-tuning model for {args.finetune_epochs} additional epochs...")
+        model.fit(
+            train_ds,
+            validation_data=val_ds,
+            epochs=args.finetune_epochs,
+            callbacks=cb_list,
+            verbose=1,
+        )
+
+    # Ensure best model is saved to output path
+    print(f"[*] Persisting trained model to {output_path}...")
+    model.save(str(output_path))
 
     elapsed = time.time() - start_time
-    print(f"\n[+] Training complete in {elapsed:.1f}s! Best weights saved to: {output_path.name}")
+    print(f"\n[+] Training complete in {elapsed:.1f}s! Model successfully saved to: {output_path.name}")
 
-    print("\n[*] Evaluating on held-out 1,311 test scans...")
+    print("\n[*] Evaluating on held-out test scans...")
     results = model.evaluate(test_ds, verbose=1)
     acc = results[1]
     prec = results[2]
