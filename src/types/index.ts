@@ -94,9 +94,21 @@ export interface TrainedModelResult {
   confidenceScore: number;
   confidencePercentage: string;
   probabilities: {
-    NORMAL: number;
-    PNEUMONIA: number;
-    [key: string]: number;
+    NORMAL?: number;
+    PNEUMONIA?: number;
+    glioma?: number;
+    meningioma?: number;
+    notumor?: number;
+    pituitary?: number;
+    [key: string]: number | undefined;
+  };
+  clinicalProfile?: {
+    title?: string;
+    icd10?: string;
+    description?: string;
+    who_grade_spectrum?: string;
+    edema_risk?: string;
+    recommended_action?: string;
   };
   status?: string;
   datasetComparison?: DatasetComparisonData;

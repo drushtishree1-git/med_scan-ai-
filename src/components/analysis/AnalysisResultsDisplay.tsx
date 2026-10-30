@@ -331,7 +331,7 @@ PubMed PMIDs: ${citations.map(c => `PMID:${c.pmid} (${c.journal})`).join(', ')}`
                   Model Neural Network Diagnosis
                 </div>
                 <div className="text-xl sm:text-2xl font-black mt-1 flex items-center gap-2">
-                  <span className={record.trainedModelInference.classification === 'PNEUMONIA' ? 'text-rose-400' : 'text-emerald-400'}>
+                  <span className={(record.trainedModelInference.classification === 'PNEUMONIA' || record.trainedModelInference.classification === 'GLIOMA' || record.trainedModelInference.classification === 'MENINGIOMA' || record.trainedModelInference.classification === 'PITUITARY') ? 'text-rose-400' : 'text-emerald-400'}>
                     {record.trainedModelInference.classification}
                   </span>
                   <span className="text-xs font-bold px-2 py-0.5 rounded bg-white/20 text-white">
@@ -339,49 +339,150 @@ PubMed PMIDs: ${citations.map(c => `PMID:${c.pmid} (${c.journal})`).join(', ')}`
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
-                  Evaluated using trained Convolutional Neural Network (Xception / MobileNetV2) feature maps.
+                  {record.trainedModelInference.probabilities?.glioma !== undefined || record.modality === 'mri'
+                    ? 'Evaluated using MobileNetV2 Deep Transfer Learning Neural Network trained on 7,200 Brain MRI scans.'
+                    : 'Evaluated using trained Convolutional Neural Network (Xception / MobileNetV2) feature maps.'}
                 </p>
+                {record.trainedModelInference.clinicalProfile && (
+                  <div className="mt-2 text-[11px] text-slate-200 space-y-1">
+                    <p className="font-semibold text-purple-200">{record.trainedModelInference.clinicalProfile.title}</p>
+                    <p className="text-[10px] text-slate-300 leading-tight">{record.trainedModelInference.clinicalProfile.description}</p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2 border-t sm:border-t-0 sm:border-l border-white/15 pt-3 sm:pt-0 sm:pl-4">
                 <div className="text-[11px] text-purple-200 font-semibold uppercase tracking-wider flex items-center justify-between">
                   <span>Class Softmax Probabilities</span>
-                  <span className="text-[10px] text-purple-300 font-mono">2-Class Classifier</span>
+                  <span className="text-[10px] text-purple-300 font-mono">
+                    {record.trainedModelInference.probabilities?.glioma !== undefined || record.modality === 'mri'
+                      ? '4-Class Classifier'
+                      : '2-Class Classifier'}
+                  </span>
                 </div>
 
                 <div className="space-y-2 pt-1">
-                  <div>
-                    <div className="flex justify-between text-[11px] font-bold text-slate-200 mb-1">
-                      <span>NORMAL:</span>
-                      <span className="font-mono text-emerald-300">
-                        {((record.trainedModelInference.probabilities?.NORMAL ?? 0) * 100).toFixed(2)}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden">
-                      <div
-                        className="bg-emerald-400 h-full rounded-full transition-all duration-500"
-                        style={{ width: `${(record.trainedModelInference.probabilities?.NORMAL ?? 0) * 100}%` }}
-                      />
-                    </div>
-                  </div>
+                  {record.trainedModelInference.probabilities?.glioma !== undefined || record.modality === 'mri' ? (
+                    <>
+                      <div>
+                        <div className="flex justify-between text-[11px] font-bold text-slate-200 mb-0.5">
+                          <span>GLIOMA:</span>
+                          <span className="font-mono text-amber-300">
+                            {((record.trainedModelInference.probabilities?.glioma ?? 0) * 100).toFixed(2)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-white/20 h-1.5 rounded-full overflow-hidden">
+                          <div
+                            className="bg-amber-400 h-full rounded-full transition-all duration-500"
+                            style={{ width: `${Math.min(100, (record.trainedModelInference.probabilities?.glioma ?? 0) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
 
-                  <div>
-                    <div className="flex justify-between text-[11px] font-bold text-slate-200 mb-1">
-                      <span>PNEUMONIA:</span>
-                      <span className="font-mono text-rose-300">
-                        {((record.trainedModelInference.probabilities?.PNEUMONIA ?? 0) * 100).toFixed(2)}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden">
-                      <div
-                        className="bg-rose-400 h-full rounded-full transition-all duration-500"
-                        style={{ width: `${(record.trainedModelInference.probabilities?.PNEUMONIA ?? 0) * 100}%` }}
-                      />
-                    </div>
-                  </div>
+                      <div>
+                        <div className="flex justify-between text-[11px] font-bold text-slate-200 mb-0.5">
+                          <span>MENINGIOMA:</span>
+                          <span className="font-mono text-purple-300">
+                            {((record.trainedModelInference.probabilities?.meningioma ?? 0) * 100).toFixed(2)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-white/20 h-1.5 rounded-full overflow-hidden">
+                          <div
+                            className="bg-purple-400 h-full rounded-full transition-all duration-500"
+                            style={{ width: `${Math.min(100, (record.trainedModelInference.probabilities?.meningioma ?? 0) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-[11px] font-bold text-slate-200 mb-0.5">
+                          <span>PITUITARY:</span>
+                          <span className="font-mono text-cyan-300">
+                            {((record.trainedModelInference.probabilities?.pituitary ?? 0) * 100).toFixed(2)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-white/20 h-1.5 rounded-full overflow-hidden">
+                          <div
+                            className="bg-cyan-400 h-full rounded-full transition-all duration-500"
+                            style={{ width: `${Math.min(100, (record.trainedModelInference.probabilities?.pituitary ?? 0) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-[11px] font-bold text-slate-200 mb-0.5">
+                          <span>NO TUMOR:</span>
+                          <span className="font-mono text-emerald-300">
+                            {((record.trainedModelInference.probabilities?.notumor ?? 0) * 100).toFixed(2)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-white/20 h-1.5 rounded-full overflow-hidden">
+                          <div
+                            className="bg-emerald-400 h-full rounded-full transition-all duration-500"
+                            style={{ width: `${Math.min(100, (record.trainedModelInference.probabilities?.notumor ?? 0) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <div className="flex justify-between text-[11px] font-bold text-slate-200 mb-1">
+                          <span>NORMAL:</span>
+                          <span className="font-mono text-emerald-300">
+                            {((record.trainedModelInference.probabilities?.NORMAL ?? 0) * 100).toFixed(2)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden">
+                          <div
+                            className="bg-emerald-400 h-full rounded-full transition-all duration-500"
+                            style={{ width: `${(record.trainedModelInference.probabilities?.NORMAL ?? 0) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-[11px] font-bold text-slate-200 mb-1">
+                          <span>PNEUMONIA:</span>
+                          <span className="font-mono text-rose-300">
+                            {((record.trainedModelInference.probabilities?.PNEUMONIA ?? 0) * 100).toFixed(2)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden">
+                          <div
+                            className="bg-rose-400 h-full rounded-full transition-all duration-500"
+                            style={{ width: `${(record.trainedModelInference.probabilities?.PNEUMONIA ?? 0) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
+
+            {record.trainedModelInference.clinicalProfile && (
+              <div className="mt-3 pt-3 border-t border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                {record.trainedModelInference.clinicalProfile.who_grade_spectrum && (
+                  <div className="bg-white/10 rounded-xl p-2.5 border border-white/10">
+                    <span className="text-[10px] text-purple-200 font-semibold uppercase block">WHO Grade Spectrum</span>
+                    <span className="text-white font-medium text-[11px] mt-0.5 block">{record.trainedModelInference.clinicalProfile.who_grade_spectrum}</span>
+                  </div>
+                )}
+                {record.trainedModelInference.clinicalProfile.icd10 && (
+                  <div className="bg-white/10 rounded-xl p-2.5 border border-white/10">
+                    <span className="text-[10px] text-purple-200 font-semibold uppercase block">ICD-10 Clinical Code</span>
+                    <span className="font-mono text-amber-300 font-bold text-[11px] mt-0.5 block">{record.trainedModelInference.clinicalProfile.icd10}</span>
+                  </div>
+                )}
+                {record.trainedModelInference.clinicalProfile.edema_risk && (
+                  <div className="bg-white/10 rounded-xl p-2.5 border border-white/10">
+                    <span className="text-[10px] text-purple-200 font-semibold uppercase block">Vasogenic Edema Risk</span>
+                    <span className="text-rose-300 font-semibold text-[11px] mt-0.5 block">{record.trainedModelInference.clinicalProfile.edema_risk}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

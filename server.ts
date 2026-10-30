@@ -128,7 +128,7 @@ function runTrainedBrainMriInference(imageBase64?: string): any {
       const parsed = JSON.parse(output.trim());
       if (parsed.status === 'success' || parsed.predicted_class) {
         return {
-          modelName: 'EfficientNetB0 Brain Tumor MRI Classifier (Kaggle 99% Benchmark)',
+          modelName: 'MobileNetV2 Brain Tumor MRI Classifier (Kaggle Benchmark)',
           classification: parsed.predicted_class,
           confidenceScore: parsed.confidence,
           confidencePercentage: parsed.confidence_percentage,
@@ -1916,7 +1916,7 @@ app.post('/api/ai/analyze-scan', async (req, res) => {
       return res.json({
         success: true,
         result: fallbackResult,
-        trainedModelInference: modality === 'xray' ? trainedModelInference : undefined,
+        trainedModelInference: (modality === 'xray' || modality === 'mri' || modality === 'brain') ? trainedModelInference : undefined,
       });
     }
 
