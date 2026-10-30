@@ -97,6 +97,7 @@ export interface TrainedModelResult {
     NORMAL: number;
     PNEUMONIA: number;
     [key: string]: number;
+  };
   status?: string;
   datasetComparison?: DatasetComparisonData;
 }

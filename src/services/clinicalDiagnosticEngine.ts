@@ -153,7 +153,7 @@ export function analyzeXrayImagePixels(imageDataUrl: string): Promise<Radiograph
 }
 
 export function generateClientDiagnosticReport(
-  modality: 'xray' | 'mri' | 'lab_report',
+  modality: 'xray' | 'mri' | 'lab_report' | 'ct' | string,
   title?: string,
   symptoms?: string[],
   clinicalNotes?: string,
